@@ -1,4 +1,3 @@
-// --- Parameter & Playlists ---
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -13,9 +12,10 @@ if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
-// --- Video-Layer ---
+const startImage = document.getElementById("startImage");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
+
 let activeVideo = videoA;
 let inactiveVideo = videoB;
 let index = 0;
@@ -27,9 +27,7 @@ function loadVideo(src) {
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
   inactiveVideo.load();
-  inactiveVideo.play().then(() => {
-    crossfade();
-  }).catch(() => {});
+  inactiveVideo.play().then(() => crossfade()).catch(() => {});
 }
 
 function crossfade() {
@@ -41,8 +39,10 @@ function crossfade() {
 function nextVideo() {
   resetInactivity();
   if (!audioUnlocked) {
-    audioUnlocked = true; // erster Shake
-    index = 0;             // Playlist startet bei Video 1
+    audioUnlocked = true;
+    index = 0;
+    // Startbild ausblenden
+    startImage.style.display = "none";
     loadVideo(playlists[city][index]);
   } else {
     index = (index + 1) % playlists[city].length;
