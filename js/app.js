@@ -24,19 +24,21 @@ let index = 0;
 let unlocked = false;
 let isTransitioning = false;
 let inactivityTimer = null;
+
+// Shake Lock
+let shakeLocked = false;
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
-// Videos werden erst nach Tippen erzeugt
+// ===== Videos =====
 let videoA, videoB;
 let activeVideo, inactiveVideo;
 
-// ===== Funktionen =====
 function createVideos() {
   videoA = document.createElement("video");
   videoB = document.createElement("video");
 
-  [videoA, videoB].forEach(v=>{
+  [videoA, videoB].forEach(v => {
     v.playsInline = true;
     v.preload = "auto";
     v.style.position = "absolute";
@@ -52,12 +54,16 @@ function createVideos() {
   inactiveVideo = videoB;
 }
 
+// ===== Core Functions =====
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
-  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+
+  // Altes Video stoppen
   inactiveVideo.pause();
   inactiveVideo.currentTime = 0;
+
+  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
   isTransitioning = false;
 }
 
@@ -77,36 +83,37 @@ function playVideo(src) {
   });
 }
 
+// ===== Playlist Controls =====
 function startPlaylist() {
   if(unlocked) return;
   unlocked = true;
 
+  // Startscreen ausblenden
   startOverlay.style.display = "none";
 
-  // Videos erzeugen NUR EINMAL
+  // Videos erzeugen (erst jetzt)
   if(!videoA) createVideos();
 
-  // direkt im Event-Handler Video starten
+  // Index zurücksetzen
   index = 0;
-  inactiveVideo.src = playlists[city][index];
-  inactiveVideo.muted = false;
-  inactiveVideo.load();
-  inactiveVideo.play().then(()=>{
-    crossfade();
-  }).catch(err=>{
-    console.warn("Play blockiert:", err);
-  });
 
-  resetInactivity();
-}
-
-function nextVideo() {
-  if(!unlocked || isTransitioning) return;
-  index = (index + 1) % playlists[city].length;
+  // Direkt Video 1 starten
   playVideo(playlists[city][index]);
   resetInactivity();
 }
 
+function nextVideo() {
+  if(!unlocked || isTransitioning || shakeLocked) return;
+
+  shakeLocked = true; // 1,2s Lock gegen Überspringen
+  index = (index + 1) % playlists[city].length;
+  playVideo(playlists[city][index]);
+  resetInactivity();
+
+  setTimeout(()=>{ shakeLocked=false; }, 1200);
+}
+
+// ===== Inactivity =====
 function resetInactivity() {
   if(inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(()=>{
@@ -118,16 +125,16 @@ function resetInactivity() {
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
 
-// Shake Detection
+// ===== Shake Detection =====
 window.addEventListener("devicemotion", e=>{
   if(!unlocked) return;
-  const acc = e.accelerationIncludingGravity;
-  if(!acc) return;
+  const a = e.accelerationIncludingGravity;
+  if(!a) return;
 
-  if(lastX!==null){
-    const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
-    if(delta>threshold) nextVideo();
+  if(lastX !== null && !shakeLocked){
+    const delta = Math.abs(a.x - lastX) + Math.abs(a.y - lastY) + Math.abs(a.z - lastZ);
+    if(delta > threshold) nextVideo();
   }
 
-  lastX=acc.x; lastY=acc.y; lastZ=acc.z;
+  lastX = a.x; lastY = a.y; lastZ = a.z;
 });
