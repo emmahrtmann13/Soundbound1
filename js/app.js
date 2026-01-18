@@ -1,3 +1,4 @@
+// ===== Parameter & Playlists =====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -11,97 +12,126 @@ if (!city || !playlists[city]) {
   window.location.href = "index.html";
 }
 
-const startImage = document.getElementById("startImage");
+// ===== DOM =====
 const startOverlay = document.getElementById("startOverlay");
-const videoA = document.getElementById("videoA");
-const videoB = document.getElementById("videoB");
+const player = document.getElementById("player");
 
-let activeVideo = videoA;
-let inactiveVideo = videoB;
+// ===== State =====
+const cityNames = { hamburg:"HAMBURG", berlin:"BERLIN", wien:"WIEN" };
+startOverlay.innerText = "START " + cityNames[city];
 
 let index = 0;
 let unlocked = false;
 let isTransitioning = false;
-let shakeLocked = false;
 let inactivityTimer = null;
+
+// Shake Lock
+let shakeLocked = false;
+let lastX = null, lastY = null, lastZ = null;
+const threshold = 18;
+
+// Videos
+let videoA, videoB;
+let activeVideo, inactiveVideo;
+
+// ===== Funktionen =====
+function createVideos() {
+  videoA = document.createElement("video");
+  videoB = document.createElement("video");
+
+  [videoA, videoB].forEach(v=>{
+    v.playsInline = true;
+    v.preload = "auto";
+    v.style.position = "absolute";
+    v.style.width = "100%";
+    v.style.height = "100%";
+    v.style.objectFit = "cover";
+    v.style.opacity = 0;
+    v.style.transition = "opacity 1.2s linear";
+    player.appendChild(v);
+  });
+
+  activeVideo = videoA;
+  inactiveVideo = videoB;
+}
 
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
+  inactiveVideo.pause();
+  inactiveVideo.currentTime = 0;
   [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+  isTransitioning = false;
 }
 
-function loadVideo(src) {
-  if (isTransitioning) return;
+function playVideo(src) {
+  if(isTransitioning) return;
   isTransitioning = true;
 
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
-  inactiveVideo.oncanplay = () => {
-    startImage.style.display = "none";
-    startOverlay.style.display = "none";
-
-    inactiveVideo.play().then(() => {
-      crossfade();
-      isTransitioning = false;
-
-      setTimeout(() => {
-        shakeLocked = false;
-      }, 1200);
-    });
-  };
+  inactiveVideo.play().then(()=>{
+    crossfade();
+  }).catch(err=>{
+    console.warn("Play blockiert:", err);
+    isTransitioning=false;
+  });
 }
 
+// ===== Playlist Controls =====
 function startPlaylist() {
-  if (unlocked) return;
+  if(unlocked) return;
   unlocked = true;
+
+  // Startscreen ausblenden
+  startOverlay.style.display = "none";
+
+  // Videos erzeugen
+  if(!videoA) createVideos();
+
+  // Index zurücksetzen
   index = 0;
-  loadVideo(playlists[city][index]);
+
+  // Direkt Video 1 starten
+  playVideo(playlists[city][index]);
+  resetInactivity();
 }
 
 function nextVideo() {
-  if (!unlocked || isTransitioning || shakeLocked) return;
+  if(!unlocked || isTransitioning || shakeLocked) return;
 
-  shakeLocked = true;
+  shakeLocked = true; // 1,2s Lock gegen Überspringen
+  index = (index + 1) % playlists[city].length;
+  playVideo(playlists[city][index]);
   resetInactivity();
 
-  index = (index + 1) % playlists[city].length;
-  loadVideo(playlists[city][index]);
+  setTimeout(()=>{ shakeLocked=false; }, 1200);
 }
 
+// ===== Inactivity =====
 function resetInactivity() {
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => {
-    window.location.href = "index.html";
+  if(inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(()=>{
+    window.location.href="index.html";
   }, 20000);
 }
-resetInactivity();
 
-// Shake Detection
-let lastX = null, lastY = null, lastZ = null;
-const threshold = 18;
-
-window.addEventListener("devicemotion", e => {
-  const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
-
-  if (unlocked && !shakeLocked && lastX !== null) {
-    const delta =
-      Math.abs(acc.x - lastX) +
-      Math.abs(acc.y - lastY) +
-      Math.abs(acc.z - lastZ);
-
-    if (delta > threshold) nextVideo();
-  }
-
-  lastX = acc.x;
-  lastY = acc.y;
-  lastZ = acc.z;
-});
-
-// Touch Unlock
+// ===== Input =====
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
+
+// ===== Shake Detection =====
+window.addEventListener("devicemotion", e=>{
+  if(!unlocked) return;
+  const acc = e.accelerationIncludingGravity;
+  if(!acc) return;
+
+  if(lastX!==null && !shakeLocked){
+    const delta = Math.abs(acc.x-lastX) + Math.abs(acc.y-lastY) + Math.abs(acc.z-lastZ);
+    if(delta>threshold) nextVideo();
+  }
+
+  lastX = acc.x; lastY = acc.y; lastZ = acc.z;
+});
