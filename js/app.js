@@ -1,10 +1,11 @@
+// --- Parameter & Playlists ---
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
 const playlists = {
-  hamburg: ["videos/hamburg1.mp4", "videos/hamburg2.mp4", "videos/hamburg3.mp4"],
-  berlin:  ["videos/berlin1.mp4",  "videos/berlin2.mp4",  "videos/berlin3.mp4"],
-  wien:    ["videos/wien1.mp4",    "videos/wien2.mp4",    "videos/wien3.mp4"]
+  hamburg: ["videos/hamburg1.mp4","videos/hamburg2.mp4","videos/hamburg3.mp4"],
+  berlin:  ["videos/berlin1.mp4","videos/berlin2.mp4","videos/berlin3.mp4"],
+  wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
 };
 
 const startFallback = "index.html";
@@ -12,22 +13,27 @@ if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
+// --- Video Elemente & Layer ---
 const startImage = document.getElementById("startImage");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
-let index = 0; // Zeigt immer das nächste Video an
-let unlocked = false; // erste User-Interaktion
+
+// --- Pro Stadt Index ---
+const cityIndex = { hamburg:0, berlin:0, wien:0 };
+
+let unlocked = false; // erste Interaktion
 let inactivityTimer = null;
 
 // --- Funktionen ---
 function loadVideo(src) {
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
+  inactiveVideo.style.display = "block";
   inactiveVideo.load();
-  inactiveVideo.play().then(() => crossfade()).catch(() => {});
+  inactiveVideo.play().then(() => crossfade()).catch(()=>{});
 }
 
 function crossfade() {
@@ -39,20 +45,25 @@ function crossfade() {
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
-  startImage.style.display = "none"; // Startbild ausblenden
-  index = 0; // Playlist beginnt bei 0
-  loadVideo(playlists[city][index]);
+
+  // Startbild ausblenden
+  startImage.style.display = "none";
+
+  // Index für diese Stadt auf 0 setzen
+  cityIndex[city] = 0;
+  loadVideo(playlists[city][cityIndex[city]]);
 }
 
-// Nächstes Video
 function nextVideo() {
   if (!unlocked) return;
   resetInactivity();
-  index = (index + 1) % playlists[city].length;
-  loadVideo(playlists[city][index]);
+
+  // Index hochzählen modulo Playlist-Länge
+  cityIndex[city] = (cityIndex[city]+1) % playlists[city].length;
+  loadVideo(playlists[city][cityIndex[city]]);
 }
 
-// --- Inactivity ---
+// --- Inaktivität Timer ---
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
@@ -61,24 +72,21 @@ function resetInactivity() {
 }
 resetInactivity();
 
-// --- Touch & Shake Detection ---
-window.addEventListener("touchstart", startPlaylist, {once: true});
-window.addEventListener("click", startPlaylist, {once: true});
-
+// --- Shake Detection & Touch Unlock ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
-window.addEventListener("devicemotion", e => {
+window.addEventListener("devicemotion", e=>{
   const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
+  if(!acc) return;
 
-  // erster Shake gilt als Unlock + Start Playlist
-  if (!unlocked) {
+  // Erster Shake -> Unlock
+  if(!unlocked){
     startPlaylist();
-  } else {
-    if (lastX !== null) {
-      const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-      if (delta > threshold) nextVideo();
+  }else{
+    if(lastX !== null){
+      const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
+      if(delta>threshold) nextVideo();
     }
   }
 
@@ -86,3 +94,7 @@ window.addEventListener("devicemotion", e => {
   lastY = acc.y;
   lastZ = acc.z;
 });
+
+// Auch Touchstart für Autoplay Unlock (falls Shake nicht ausreicht)
+window.addEventListener("touchstart", startPlaylist, {once:true});
+window.addEventListener("click", startPlaylist, {once:true});
