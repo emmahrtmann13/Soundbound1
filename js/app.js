@@ -13,7 +13,7 @@ if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
-// --- Video Elemente & Layer ---
+// --- DOM Elemente ---
 const startImage = document.getElementById("startImage");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
@@ -21,7 +21,7 @@ const videoB = document.getElementById("videoB");
 let activeVideo = videoA;
 let inactiveVideo = videoB;
 
-// --- Pro Stadt Index ---
+// --- Index pro Stadt ---
 const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
 let unlocked = false; // erste Interaktion
@@ -31,7 +31,7 @@ let inactivityTimer = null;
 function loadVideo(src) {
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block";
+  inactiveVideo.style.display = "block"; // sichtbar machen
   inactiveVideo.load();
   inactiveVideo.play().then(() => crossfade()).catch(()=>{});
 }
@@ -49,8 +49,10 @@ function startPlaylist() {
   // Startbild ausblenden
   startImage.style.display = "none";
 
-  // Index für diese Stadt auf 0 setzen
+  // Index für diese Stadt auf 0
   cityIndex[city] = 0;
+
+  // Video 1 starten
   loadVideo(playlists[city][cityIndex[city]]);
 }
 
@@ -58,21 +60,22 @@ function nextVideo() {
   if (!unlocked) return;
   resetInactivity();
 
-  // Index hochzählen modulo Playlist-Länge
+  // Nächstes Video in Playlist
   cityIndex[city] = (cityIndex[city]+1) % playlists[city].length;
   loadVideo(playlists[city][cityIndex[city]]);
 }
 
-// --- Inaktivität Timer ---
+// --- Inaktivität ---
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
+    // Zurück zum Startbild
     window.location.href = startFallback;
   }, 20000);
 }
 resetInactivity();
 
-// --- Shake Detection & Touch Unlock ---
+// --- Shake & Touch Detection ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -80,7 +83,7 @@ window.addEventListener("devicemotion", e=>{
   const acc = e.accelerationIncludingGravity;
   if(!acc) return;
 
-  // Erster Shake -> Unlock
+  // erster Shake -> Unlock
   if(!unlocked){
     startPlaylist();
   }else{
@@ -95,6 +98,6 @@ window.addEventListener("devicemotion", e=>{
   lastZ = acc.z;
 });
 
-// Auch Touchstart für Autoplay Unlock (falls Shake nicht ausreicht)
+// Touchstart & Klick ebenfalls als Unlock (Autoplay-Policy)
 window.addEventListener("touchstart", startPlaylist, {once:true});
 window.addEventListener("click", startPlaylist, {once:true});
