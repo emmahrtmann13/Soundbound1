@@ -18,8 +18,8 @@ const videoB = document.getElementById("videoB");
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
-let index = 0;
-let audioUnlocked = false;
+let index = 0; // Zeigt immer das nächste Video an
+let unlocked = false; // erste User-Interaktion
 let inactivityTimer = null;
 
 // --- Funktionen ---
@@ -36,28 +36,35 @@ function crossfade() {
   [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
 }
 
-function nextVideo() {
-  resetInactivity();
-  if (!audioUnlocked) {
-    audioUnlocked = true;
-    index = 0;
-    // Startbild ausblenden
-    startImage.style.display = "none";
-    loadVideo(playlists[city][index]);
-  } else {
-    index = (index + 1) % playlists[city].length;
-    loadVideo(playlists[city][index]);
-  }
+function startPlaylist() {
+  if (unlocked) return;
+  unlocked = true;
+  startImage.style.display = "none"; // Startbild ausblenden
+  index = 0; // Playlist beginnt bei 0
+  loadVideo(playlists[city][index]);
 }
 
+// Nächstes Video
+function nextVideo() {
+  if (!unlocked) return;
+  resetInactivity();
+  index = (index + 1) % playlists[city].length;
+  loadVideo(playlists[city][index]);
+}
+
+// --- Inactivity ---
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
     window.location.href = startFallback;
   }, 20000);
 }
+resetInactivity();
 
-// --- Shake Detection ---
+// --- Touch & Shake Detection ---
+window.addEventListener("touchstart", startPlaylist, {once: true});
+window.addEventListener("click", startPlaylist, {once: true});
+
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -65,15 +72,17 @@ window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
 
-  if (lastX !== null) {
-    const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-    if (delta > threshold) nextVideo();
+  // erster Shake gilt als Unlock + Start Playlist
+  if (!unlocked) {
+    startPlaylist();
+  } else {
+    if (lastX !== null) {
+      const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
+      if (delta > threshold) nextVideo();
+    }
   }
 
   lastX = acc.x;
   lastY = acc.y;
   lastZ = acc.z;
 });
-
-// --- Inactivity Timer ---
-resetInactivity();
