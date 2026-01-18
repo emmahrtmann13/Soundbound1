@@ -29,15 +29,21 @@ let firstInteraction = false;
 
 // ==== Reset / Init ====
 function resetPlayer() {
-  videoA.pause(); videoB.pause();
-  videoA.src = ""; videoB.src = "";
+  // Stoppe Videos
+  videoA.pause();
+  videoB.pause();
+  videoA.src = "";
+  videoB.src = "";
 
+  // Zeige Overlay & Startbild
   startImage.style.display = "block";
   startOverlay.style.display = "flex";
 
+  // Entferne Active-Klassen
   videoA.classList.remove("active");
   videoB.classList.remove("active");
 
+  // Reset States
   activeVideo = videoA;
   inactiveVideo = videoB;
   index = 0;
@@ -48,9 +54,6 @@ function resetPlayer() {
 
   resetInactivity();
 }
-
-// Reset beim Laden
-window.addEventListener("load", resetPlayer);
 
 // ==== Inaktivität ====
 function resetInactivity() {
@@ -96,7 +99,9 @@ function loadVideo(src) {
 
 // ==== Playlist-Steuerung ====
 function startPlaylist() {
-  if (unlocked) return;
+  // Hard Reset, damit NFC mehrfach scannen sicher ist
+  resetPlayer();
+
   unlocked = true;
   firstInteraction = true;
 
@@ -158,5 +163,13 @@ function requestDeviceMotionPermission() {
 requestDeviceMotionPermission();
 
 // ==== Overlay Touch ====
-startOverlay.addEventListener("click", startPlaylist);
-startOverlay.addEventListener("touchstart", startPlaylist);
+startOverlay.addEventListener("click", () => {
+  startOverlay.style.display = "none";
+  startImage.style.display = "none";
+  startPlaylist();
+});
+startOverlay.addEventListener("touchstart", () => {
+  startOverlay.style.display = "none";
+  startImage.style.display = "none";
+  startPlaylist();
+});
