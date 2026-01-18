@@ -1,3 +1,4 @@
+// ===== Parameter =====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -7,38 +8,45 @@ const playlists = {
   wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
 };
 
-const cityNames = {
-  hamburg: "HAMBURG",
-  berlin: "BERLIN",
-  wien: "WIEN"
-};
-
 if (!city || !playlists[city]) {
   window.location.href = "index.html";
 }
 
+// ===== DOM =====
 const startOverlay = document.getElementById("startOverlay");
-const videoA = document.getElementById("videoA");
-const videoB = document.getElementById("videoB");
+const player = document.getElementById("player");
 
-startOverlay.innerText = "START " + cityNames[city];
+// ===== Videos =====
+let videoA = document.createElement("video");
+let videoB = document.createElement("video");
+
+[videoA, videoB].forEach(v => {
+  v.playsInline = true;
+  v.preload = "auto";
+  v.style.position = "absolute";
+  v.style.width = "100%";
+  v.style.height = "100%";
+  v.style.objectFit = "cover";
+  v.style.opacity = 0;
+  v.style.transition = "opacity 1.2s linear";
+  player.appendChild(v);
+});
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
 
+// ===== Start Text =====
+const cityNames = { hamburg:"HAMBURG", berlin:"BERLIN", wien:"WIEN" };
+startOverlay.innerText = "START " + cityNames[city];
+
+// ===== State =====
 let index = 0;
 let unlocked = false;
 let isTransitioning = false;
-let shakeLocked = false;
 let inactivityTimer = null;
 
-function crossfade() {
-  inactiveVideo.classList.add("active");
-  activeVideo.classList.remove("active");
-  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
-}
-
-function loadVideo(src) {
+// ===== Core =====
+function playVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
 
@@ -46,67 +54,61 @@ function loadVideo(src) {
   inactiveVideo.muted = false;
   inactiveVideo.load();
 
-  inactiveVideo.oncanplay = () => {
-    startOverlay.style.display = "none";
+  inactiveVideo.play().then(() => {
+    inactiveVideo.style.opacity = 1;
+    activeVideo.style.opacity = 0;
 
-    inactiveVideo.play().then(() => {
-      crossfade();
+    const old = activeVideo;
+    activeVideo = inactiveVideo;
+    inactiveVideo = old;
+
+    inactiveVideo.pause();
+    inactiveVideo.currentTime = 0;
+
+    setTimeout(() => {
       isTransitioning = false;
-
-      setTimeout(() => {
-        shakeLocked = false;
-      }, 1200);
-    });
-  };
+    }, 1200);
+  });
 }
 
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
   index = 0;
-  loadVideo(playlists[city][index]);
+  startOverlay.style.display = "none";
+  playVideo(playlists[city][index]);
+  resetInactivity();
 }
 
 function nextVideo() {
-  if (!unlocked || isTransitioning || shakeLocked) return;
-
-  shakeLocked = true;
-  resetInactivity();
-
+  if (!unlocked || isTransitioning) return;
   index = (index + 1) % playlists[city].length;
-  loadVideo(playlists[city][index]);
+  playVideo(playlists[city][index]);
+  resetInactivity();
 }
 
+// ===== Inactivity =====
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
     window.location.href = "index.html";
   }, 20000);
 }
-resetInactivity();
 
-// Shake Detection
-let lastX = null, lastY = null, lastZ = null;
-const threshold = 18;
-
-window.addEventListener("devicemotion", e => {
-  const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
-
-  if (unlocked && !shakeLocked && lastX !== null) {
-    const delta =
-      Math.abs(acc.x - lastX) +
-      Math.abs(acc.y - lastY) +
-      Math.abs(acc.z - lastZ);
-
-    if (delta > threshold) nextVideo();
-  }
-
-  lastX = acc.x;
-  lastY = acc.y;
-  lastZ = acc.z;
-});
-
-// Touch Unlock
+// ===== Input =====
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
+
+let lastX=null,lastY=null,lastZ=null;
+const threshold = 18;
+
+window.addEventListener("devicemotion", e=>{
+  const a = e.accelerationIncludingGravity;
+  if(!a || !unlocked) return;
+
+  if(lastX!==null){
+    const delta = Math.abs(a.x-lastX)+Math.abs(a.y-lastY)+Math.abs(a.z-lastZ);
+    if(delta>threshold) nextVideo();
+  }
+  lastX=a.x; lastY=a.y; lastZ=a.z;
+});
