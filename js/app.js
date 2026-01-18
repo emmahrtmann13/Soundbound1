@@ -13,25 +13,46 @@ if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
-// --- DOM Elemente ---
+// --- DOM ---
+const player = document.getElementById("player");
 const startImage = document.getElementById("startImage");
-const videoA = document.getElementById("videoA");
-const videoB = document.getElementById("videoB");
 
-let activeVideo = videoA;
-let inactiveVideo = videoB;
+// --- Video Layer Variablen ---
+let videoA, videoB;
+let activeVideo, inactiveVideo;
 
-// --- Index pro Stadt ---
+// --- Playlist Index pro Stadt ---
 const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
-let unlocked = false; // erste Interaktion
+let unlocked = false;
 let inactivityTimer = null;
 
 // --- Funktionen ---
+function createVideos() {
+  // Video Elemente dynamisch erzeugen
+  videoA = document.createElement("video");
+  videoB = document.createElement("video");
+
+  [videoA, videoB].forEach(v => {
+    v.playsInline = true;
+    v.preload = "auto";
+    v.style.position = "absolute";
+    v.style.width = "100%";
+    v.style.height = "100%";
+    v.style.objectFit = "cover";
+    v.style.opacity = 0;
+    v.style.transition = "opacity 1.5s linear";
+    player.appendChild(v);
+  });
+
+  activeVideo = videoA;
+  inactiveVideo = videoB;
+}
+
 function loadVideo(src) {
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block"; // sichtbar machen
+  inactiveVideo.style.display = "block";
   inactiveVideo.load();
   inactiveVideo.play().then(() => crossfade()).catch(()=>{});
 }
@@ -48,6 +69,9 @@ function startPlaylist() {
 
   // Startbild ausblenden
   startImage.style.display = "none";
+
+  // Videos erzeugen
+  createVideos();
 
   // Index für diese Stadt auf 0
   cityIndex[city] = 0;
@@ -69,13 +93,12 @@ function nextVideo() {
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    // Zurück zum Startbild
     window.location.href = startFallback;
   }, 20000);
 }
 resetInactivity();
 
-// --- Shake & Touch Detection ---
+// --- Shake Detection ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -83,7 +106,6 @@ window.addEventListener("devicemotion", e=>{
   const acc = e.accelerationIncludingGravity;
   if(!acc) return;
 
-  // erster Shake -> Unlock
   if(!unlocked){
     startPlaylist();
   }else{
@@ -98,6 +120,6 @@ window.addEventListener("devicemotion", e=>{
   lastZ = acc.z;
 });
 
-// Touchstart & Klick ebenfalls als Unlock (Autoplay-Policy)
+// --- Touchstart & Click als Unlock (Chrome Autoplay) ---
 window.addEventListener("touchstart", startPlaylist, {once:true});
 window.addEventListener("click", startPlaylist, {once:true});

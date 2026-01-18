@@ -14,7 +14,7 @@ html, body {
   object-fit: cover;
 }
 
-/* Video Layer */
+/* Video Layer wird dynamisch erzeugt */
 video {
   position: absolute;
   width: 100%;
@@ -22,10 +22,8 @@ video {
   object-fit: cover;
   opacity: 0;
   transition: opacity 1.5s linear;
-  display: none; /* erst sichtbar nach Start */
 }
 
 video.active {
   opacity: 1;
-  display: block;
 }
