@@ -22,77 +22,71 @@ const videoB = document.getElementById("videoB");
 let activeVideo = videoA;
 let inactiveVideo = videoB;
 
-// --- Playlist Index ---
-const cityIndex = { hamburg:0, berlin:0, wien:0 };
-
+// --- State ---
+let index = 0;
 let unlocked = false;
 let isTransitioning = false;
+let shakeLocked = false;
 let inactivityTimer = null;
 
-// --- Crossfade Funktion ---
+// --- Crossfade ---
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
   [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
 }
 
-// --- Video laden & abspielen ---
+// --- Video laden & spielen ---
 function loadVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = false;           // Ton aktivieren
-  inactiveVideo.style.display = "block"; // sicherstellen sichtbar
+  inactiveVideo.muted = false;
+  inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
-  inactiveVideo.addEventListener('loadeddata', function onData() {
-    inactiveVideo.removeEventListener('loadeddata', onData);
+  inactiveVideo.addEventListener("loadeddata", function onLoad() {
+    inactiveVideo.removeEventListener("loadeddata", onLoad);
 
-    // Startbild + Overlay ausblenden, bevor Crossfade
+    // Startbild ausblenden
     startImage.style.display = "none";
     startOverlay.style.display = "none";
 
-    // Crossfade sichtbar machen
-    inactiveVideo.classList.add("active");
-    activeVideo.classList.remove("active");
+    inactiveVideo.play().then(() => {
+      crossfade();
 
-    // Video abspielen
-    inactiveVideo.play().then(()=>{
-      // Layer tauschen
-      [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+      // Altes Video wirklich stoppen
+      inactiveVideo.pause();
+      inactiveVideo.currentTime = 0;
+
       isTransitioning = false;
-    }).catch(()=>{
-      console.warn("Play blockiert, bitte Touch erneut");
-      isTransitioning = false;
+
+      // Shake erst nach Fade wieder erlauben
+      setTimeout(() => {
+        shakeLocked = false;
+      }, 1200);
     });
   });
 }
 
-// --- Playlist starten ---
+// --- Start per Touch ---
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
-
-  // Overlay ausblenden
-  startOverlay.style.display = "none";
-
-  // Index auf 0
-  cityIndex[city] = 0;
-
-  // Erstes Video starten
-  inactiveVideo = videoA;
-  activeVideo = videoB;
-  loadVideo(playlists[city][cityIndex[city]]);
+  index = 0;
+  loadVideo(playlists[city][index]);
 }
 
-// --- Nächstes Video ---
+// --- Nächstes Video per Shake ---
 function nextVideo() {
-  if (!unlocked) return;
+  if (!unlocked || isTransitioning || shakeLocked) return;
+
+  shakeLocked = true;
   resetInactivity();
 
-  cityIndex[city] = (cityIndex[city]+1) % playlists[city].length;
-  loadVideo(playlists[city][cityIndex[city]]);
+  index = (index + 1) % playlists[city].length;
+  loadVideo(playlists[city][index]);
 }
 
 // --- Inaktivität ---
@@ -104,29 +98,21 @@ function resetInactivity() {
 }
 resetInactivity();
 
-// --- Shake Detection mit Cooldown ---
+// --- Shake Detection ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
-let shakeLocked = false;
 
-window.addEventListener("devicemotion", e=>{
+window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
-  if(!acc) return;
+  if (!acc) return;
 
-  if(unlocked && !shakeLocked){
-    if(lastX !== null){
-      const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
-      
-      if(delta > threshold){
-        shakeLocked = true;
-        nextVideo();
+  if (unlocked && !shakeLocked && lastX !== null) {
+    const delta =
+      Math.abs(acc.x - lastX) +
+      Math.abs(acc.y - lastY) +
+      Math.abs(acc.z - lastZ);
 
-        // Cooldown: erst nach 1.5 Sekunden wieder erlauben
-        setTimeout(() => {
-          shakeLocked = false;
-        }, 1500);
-      }
-    }
+    if (delta > threshold) nextVideo();
   }
 
   lastX = acc.x;
@@ -134,6 +120,6 @@ window.addEventListener("devicemotion", e=>{
   lastZ = acc.z;
 });
 
-// --- Touchstart & Click als Unlock ---
+// --- Touch Unlock (Autoplay-Freigabe) ---
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
