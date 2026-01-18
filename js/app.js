@@ -1,4 +1,4 @@
-// ===== Parameter =====
+// ===== Parameter & Playlists =====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -16,82 +16,92 @@ if (!city || !playlists[city]) {
 const startOverlay = document.getElementById("startOverlay");
 const player = document.getElementById("player");
 
-// ===== Videos =====
-let videoA = document.createElement("video");
-let videoB = document.createElement("video");
-
-[videoA, videoB].forEach(v => {
-  v.playsInline = true;
-  v.preload = "auto";
-  v.style.position = "absolute";
-  v.style.width = "100%";
-  v.style.height = "100%";
-  v.style.objectFit = "cover";
-  v.style.opacity = 0;
-  v.style.transition = "opacity 1.2s linear";
-  player.appendChild(v);
-});
-
-let activeVideo = videoA;
-let inactiveVideo = videoB;
-
-// ===== Start Text =====
+// ===== State =====
 const cityNames = { hamburg:"HAMBURG", berlin:"BERLIN", wien:"WIEN" };
 startOverlay.innerText = "START " + cityNames[city];
 
-// ===== State =====
 let index = 0;
 let unlocked = false;
 let isTransitioning = false;
 let inactivityTimer = null;
+let lastX = null, lastY = null, lastZ = null;
+const threshold = 18;
 
-// ===== Core =====
+// Videos werden erst nach Tippen erzeugt
+let videoA, videoB;
+let activeVideo, inactiveVideo;
+
+// ===== Funktionen =====
+function createVideos() {
+  videoA = document.createElement("video");
+  videoB = document.createElement("video");
+
+  [videoA, videoB].forEach(v=>{
+    v.playsInline = true;
+    v.preload = "auto";
+    v.style.position = "absolute";
+    v.style.width = "100%";
+    v.style.height = "100%";
+    v.style.objectFit = "cover";
+    v.style.opacity = 0;
+    v.style.transition = "opacity 1.2s linear";
+    player.appendChild(v);
+  });
+
+  activeVideo = videoA;
+  inactiveVideo = videoB;
+}
+
+function crossfade() {
+  inactiveVideo.classList.add("active");
+  activeVideo.classList.remove("active");
+  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+  inactiveVideo.pause();
+  inactiveVideo.currentTime = 0;
+  isTransitioning = false;
+}
+
 function playVideo(src) {
-  if (isTransitioning) return;
+  if(isTransitioning) return;
   isTransitioning = true;
 
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
   inactiveVideo.load();
 
-  inactiveVideo.play().then(() => {
-    inactiveVideo.style.opacity = 1;
-    activeVideo.style.opacity = 0;
-
-    const old = activeVideo;
-    activeVideo = inactiveVideo;
-    inactiveVideo = old;
-
-    inactiveVideo.pause();
-    inactiveVideo.currentTime = 0;
-
-    setTimeout(() => {
-      isTransitioning = false;
-    }, 1200);
+  inactiveVideo.play().then(()=>{
+    crossfade();
+  }).catch(err=>{
+    console.warn("Play blockiert:", err);
+    isTransitioning=false;
   });
 }
 
 function startPlaylist() {
-  if (unlocked) return;
+  if(unlocked) return;
   unlocked = true;
-  index = 0;
+
   startOverlay.style.display = "none";
+
+  // Videos erzeugen NACH Tippen!
+  createVideos();
+
+  index = 0;
   playVideo(playlists[city][index]);
   resetInactivity();
 }
 
 function nextVideo() {
-  if (!unlocked || isTransitioning) return;
+  if(!unlocked || isTransitioning) return;
   index = (index + 1) % playlists[city].length;
   playVideo(playlists[city][index]);
   resetInactivity();
 }
 
-// ===== Inactivity =====
 function resetInactivity() {
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => {
-    window.location.href = "index.html";
+  if(inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(()=>{
+    window.location.href="index.html";
   }, 20000);
 }
 
@@ -99,16 +109,16 @@ function resetInactivity() {
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
 
-let lastX=null,lastY=null,lastZ=null;
-const threshold = 18;
-
+// Shake Detection
 window.addEventListener("devicemotion", e=>{
-  const a = e.accelerationIncludingGravity;
-  if(!a || !unlocked) return;
+  if(!unlocked) return;
+  const acc = e.accelerationIncludingGravity;
+  if(!acc) return;
 
   if(lastX!==null){
-    const delta = Math.abs(a.x-lastX)+Math.abs(a.y-lastY)+Math.abs(a.z-lastZ);
+    const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
     if(delta>threshold) nextVideo();
   }
-  lastX=a.x; lastY=a.y; lastZ=a.z;
+
+  lastX=acc.x; lastY=acc.y; lastZ=acc.z;
 });
