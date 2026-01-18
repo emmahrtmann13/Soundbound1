@@ -83,11 +83,20 @@ function startPlaylist() {
 
   startOverlay.style.display = "none";
 
-  // Videos erzeugen NACH Tippen!
-  createVideos();
+  // Videos erzeugen NUR EINMAL
+  if(!videoA) createVideos();
 
+  // direkt im Event-Handler Video starten
   index = 0;
-  playVideo(playlists[city][index]);
+  inactiveVideo.src = playlists[city][index];
+  inactiveVideo.muted = false;
+  inactiveVideo.load();
+  inactiveVideo.play().then(()=>{
+    crossfade();
+  }).catch(err=>{
+    console.warn("Play blockiert:", err);
+  });
+
   resetInactivity();
 }
 
