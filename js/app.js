@@ -1,3 +1,4 @@
+// --- Parameter & Playlists ---
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -8,31 +9,23 @@ const playlists = {
 };
 
 const startFallback = "index.html";
-
 if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
-const startVideo = document.getElementById("startVideo");
+// --- Video-Layer ---
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
-
 let activeVideo = videoA;
 let inactiveVideo = videoB;
-let index = 0; // Zeigt immer das nächste Video an
+let index = 0;
 let audioUnlocked = false;
 let inactivityTimer = null;
 
-// Querformat lock
-if (screen.orientation && screen.orientation.lock) {
-  screen.orientation.lock("landscape").catch(() => {});
-}
-
 // --- Funktionen ---
-
-function loadVideo(src, withSound) {
+function loadVideo(src) {
   inactiveVideo.src = src;
-  inactiveVideo.muted = !withSound;
+  inactiveVideo.muted = false;
   inactiveVideo.load();
   inactiveVideo.play().then(() => {
     crossfade();
@@ -47,17 +40,13 @@ function crossfade() {
 
 function nextVideo() {
   resetInactivity();
-
   if (!audioUnlocked) {
-    audioUnlocked = true;
-    startVideo.pause();
-    startVideo.style.display = "none"; // Startvideo ausblenden
-    index = 0;
-    loadVideo(playlists[city][index], true);
+    audioUnlocked = true; // erster Shake
+    index = 0;             // Playlist startet bei Video 1
+    loadVideo(playlists[city][index]);
   } else {
-    // Index hochzählen
     index = (index + 1) % playlists[city].length;
-    loadVideo(playlists[city][index], true);
+    loadVideo(playlists[city][index]);
   }
 }
 
@@ -72,18 +61,13 @@ function resetInactivity() {
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
-window.addEventListener("devicemotion", (e) => {
+window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
   if (!acc) return;
 
   if (lastX !== null) {
-    const deltaX = Math.abs(acc.x - lastX);
-    const deltaY = Math.abs(acc.y - lastY);
-    const deltaZ = Math.abs(acc.z - lastZ);
-
-    if (deltaX + deltaY + deltaZ > threshold) {
-      nextVideo();
-    }
+    const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
+    if (delta > threshold) nextVideo();
   }
 
   lastX = acc.x;
