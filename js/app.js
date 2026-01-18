@@ -14,41 +14,21 @@ if (!city || !playlists[city]) {
 }
 
 // --- DOM ---
-const player = document.getElementById("player");
 const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
+const videoA = document.getElementById("videoA");
+const videoB = document.getElementById("videoB");
+const player = document.getElementById("player");
 
-// --- Video Layer ---
-let videoA, videoB;
-let activeVideo, inactiveVideo;
+let activeVideo = videoA;
+let inactiveVideo = videoB;
 
-// --- Playlist Index pro Stadt ---
+// --- Playlist Index ---
 const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
 let unlocked = false;
-let inactivityTimer = null;
 let isTransitioning = false;
-
-// --- Video-Erzeugung ---
-function createVideos() {
-  videoA = document.createElement("video");
-  videoB = document.createElement("video");
-
-  [videoA, videoB].forEach(v => {
-    v.playsInline = true;
-    v.preload = "auto";
-    v.style.position = "absolute";
-    v.style.width = "100%";
-    v.style.height = "100%";
-    v.style.objectFit = "cover";
-    v.style.opacity = 0;
-    v.style.transition = "opacity 1.5s linear";
-    player.appendChild(v);
-  });
-
-  activeVideo = videoA;
-  inactiveVideo = videoB;
-}
+let inactivityTimer = null;
 
 // --- Crossfade ---
 function crossfade() {
@@ -63,7 +43,7 @@ function loadVideo(src) {
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = false;
+  inactiveVideo.muted = false;  // Ton aktivieren
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
@@ -85,16 +65,12 @@ function startPlaylist() {
   // Overlay ausblenden
   startOverlay.style.display = "none";
 
-  // Videos erzeugen
-  createVideos();
-
   // Index auf 0
   cityIndex[city] = 0;
 
-  // Video 1 starten
+  // Erstes Video starten
   inactiveVideo = videoA;
   activeVideo = videoB;
-
   loadVideo(playlists[city][cityIndex[city]]);
 }
 
