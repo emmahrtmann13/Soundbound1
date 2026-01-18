@@ -24,9 +24,11 @@ let index = 0;
 let unlocked = false;
 let isTransitioning = false;
 let inactivityTimer = null;
+
+// Shake Lock
+let shakeLocked = false;
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
-let shakeLocked = false;
 
 // Videos
 let videoA, videoB;
@@ -78,29 +80,37 @@ function playVideo(src) {
   });
 }
 
+// ===== Playlist Controls =====
 function startPlaylist() {
   if(unlocked) return;
   unlocked = true;
 
+  // Startscreen ausblenden
   startOverlay.style.display = "none";
 
+  // Videos erzeugen
   if(!videoA) createVideos();
 
+  // Index zurücksetzen
   index = 0;
+
+  // Direkt Video 1 starten
   playVideo(playlists[city][index]);
   resetInactivity();
 }
 
 function nextVideo() {
   if(!unlocked || isTransitioning || shakeLocked) return;
-  shakeLocked = true;
+
+  shakeLocked = true; // 1,2s Lock gegen Überspringen
   index = (index + 1) % playlists[city].length;
   playVideo(playlists[city][index]);
   resetInactivity();
 
-  setTimeout(()=>{ shakeLocked=false; }, 1200); // 1,2s Lock für Shake
+  setTimeout(()=>{ shakeLocked=false; }, 1200);
 }
 
+// ===== Inactivity =====
 function resetInactivity() {
   if(inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(()=>{

@@ -12,6 +12,7 @@ html,body{
   background:black;
 }
 
+/* Startscreen Overlay */
 .startText{
   position:fixed;
   inset:0;
@@ -23,8 +24,10 @@ html,body{
   color:white;
   background:black;
   cursor:pointer;
+  z-index:10;
 }
 
+/* Dynamisch erzeugte Videos */
 video{
   position:absolute;
   inset:0;
@@ -33,6 +36,7 @@ video{
   object-fit:cover;
   opacity:0;
   transition:opacity 1.2s linear;
+  z-index:1;
 }
 
 video.active{
