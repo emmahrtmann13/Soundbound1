@@ -25,28 +25,26 @@ let unlocked = false;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
+let firstInteraction = false; // für Tonfreigabe
 
 // ==== Reset / Init ====
 function resetPlayer() {
-  // Stoppe Videos & leere Quellen
   videoA.pause(); videoB.pause();
   videoA.src = ""; videoB.src = "";
 
-  // Startbild & Overlay sichtbar
   startImage.style.display = "block";
   startOverlay.style.display = "flex";
 
-  // CSS Klassen entfernen
   videoA.classList.remove("active");
   videoB.classList.remove("active");
 
-  // Reset States
   activeVideo = videoA;
   inactiveVideo = videoB;
   index = 0;
   unlocked = false;
   isTransitioning = false;
   shakeLocked = false;
+  firstInteraction = false;
 
   resetInactivity();
 }
@@ -76,9 +74,11 @@ function loadVideo(src) {
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = true; // Autoplay auf iOS/Android
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
+
+  // Stumm starten nur vor erster Interaktion
+  if (!firstInteraction) inactiveVideo.muted = true;
 
   inactiveVideo.oncanplay = () => {
     startImage.style.display = "none";
@@ -88,9 +88,10 @@ function loadVideo(src) {
       crossfade();
       isTransitioning = false;
 
+      // Nach 1,5s wieder Shakes erlauben
       setTimeout(() => {
         shakeLocked = false;
-      }, 1200);
+      }, 1500);
     }).catch(err => {
       console.warn("Video konnte nicht automatisch starten:", err);
     });
@@ -101,12 +102,13 @@ function loadVideo(src) {
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
+  firstInteraction = true;
+
+  // Ton aktivieren nach erstem Tippen
+  videoA.muted = false;
+  videoB.muted = false;
+
   index = 0;
-
-  // Ton aktivieren, jetzt darf Audio abgespielt werden
-  inactiveVideo.muted = false;
-  activeVideo.muted = false;
-
   loadVideo(playlists[city][index]);
 }
 
@@ -122,7 +124,7 @@ function nextVideo() {
 
 // ==== Shake Detection ====
 let lastX = null, lastY = null, lastZ = null;
-const threshold = 7; // sanftere Shake-Sensibilität
+const threshold = 8;
 
 function shakeHandler(e) {
   const acc = e.accelerationIncludingGravity;
