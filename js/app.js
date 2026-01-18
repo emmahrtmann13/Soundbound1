@@ -24,13 +24,12 @@ let activeVideo, inactiveVideo;
 // --- Playlist Index pro Stadt ---
 const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
-let unlocked = false;
+let unlocked = false; // erste Interaktion
 let inactivityTimer = null;
 let isTransitioning = false;
 
-// --- Funktionen ---
+// --- Video-Erzeugung ---
 function createVideos() {
-  // Video Elemente dynamisch erzeugen
   videoA = document.createElement("video");
   videoB = document.createElement("video");
 
@@ -50,6 +49,14 @@ function createVideos() {
   inactiveVideo = videoB;
 }
 
+// --- Crossfade ---
+function crossfade() {
+  inactiveVideo.classList.add("active");
+  activeVideo.classList.remove("active");
+  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+}
+
+// --- Video laden & abspielen ---
 function loadVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
@@ -59,47 +66,53 @@ function loadVideo(src) {
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
-  inactiveVideo.play().then(() => {
-    const onPlaying = () => {
-      inactiveVideo.removeEventListener('playing', onPlaying);
-      // perform crossfade once the new video is actually playing
-      crossfade();
-      // hide start image once first video is visible
-      if (startImage && startImage.style.display !== "none") startImage.style.display = "none";
-      isTransitioning = false;
-    };
-    inactiveVideo.addEventListener('playing', onPlaying);
-  }).catch(()=>{ isTransitioning = false; });
+  const onPlaying = () => {
+    inactiveVideo.removeEventListener('playing', onPlaying);
+    crossfade();
+    isTransitioning = false;
+  };
+
+  inactiveVideo.addEventListener('playing', onPlaying);
+
+  inactiveVideo.play().catch(()=>{ isTransitioning = false; });
 }
 
-function crossfade() {
-  inactiveVideo.classList.add("active");
-  activeVideo.classList.remove("active");
-  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
-}
-
+// --- Playlist starten ---
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
 
-  // Startbild ausblenden
-  startImage.style.display = "none";
-
   // Videos erzeugen
   createVideos();
 
-  // Index für diese Stadt auf 0
+  // Index auf 0 setzen
   cityIndex[city] = 0;
 
-  // Video 1 starten
-  loadVideo(playlists[city][cityIndex[city]]);
+  // Startbild bleibt sichtbar bis erstes Video wirklich spielt
+  inactiveVideo = videoA;
+  activeVideo = videoB;
+
+  inactiveVideo.src = playlists[city][cityIndex[city]];
+  inactiveVideo.muted = false;
+  inactiveVideo.style.display = "block";
+  inactiveVideo.load();
+
+  const onPlaying = () => {
+    inactiveVideo.removeEventListener('playing', onPlaying);
+    startImage.style.display = "none"; // erst jetzt ausblenden
+    crossfade();
+    isTransitioning = false;
+  };
+  inactiveVideo.addEventListener('playing', onPlaying);
+
+  inactiveVideo.play().catch(()=>{ isTransitioning = false; });
 }
 
+// --- Nächstes Video ---
 function nextVideo() {
   if (!unlocked) return;
   resetInactivity();
 
-  // Nächstes Video in Playlist
   cityIndex[city] = (cityIndex[city]+1) % playlists[city].length;
   loadVideo(playlists[city][cityIndex[city]]);
 }
@@ -122,7 +135,7 @@ window.addEventListener("devicemotion", e=>{
   if(!acc) return;
 
   if(!unlocked){
-    startPlaylist();
+    startPlaylist(); // erster Shake → Start
   }else{
     if(lastX !== null){
       const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
@@ -135,6 +148,5 @@ window.addEventListener("devicemotion", e=>{
   lastZ = acc.z;
 });
 
-// --- Touchstart & Click als Unlock (Chrome Autoplay) ---
-window.addEventListener("touchstart", startPlaylist, {once:true});
-window.addEventListener("click", startPlaylist, {once:true});
+// --- Touch/Klick als Unlock (Autoplay-Policy Android) ---
+window.addEventListener("touchstart", startPlaylist, {onc

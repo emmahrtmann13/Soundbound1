@@ -14,7 +14,6 @@ html, body {
   object-fit: cover;
 }
 
-/* Video Layer wird dynamisch erzeugt */
 video {
   position: absolute;
   width: 100%;
