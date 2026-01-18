@@ -1,3 +1,4 @@
+// ==== Parameter & Playlists ====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -11,6 +12,7 @@ if (!city || !playlists[city]) {
   window.location.href = "index.html";
 }
 
+// ==== DOM Elemente ====
 const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
 const videoA = document.getElementById("videoA");
@@ -18,13 +20,51 @@ const videoB = document.getElementById("videoB");
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
-
 let index = 0;
 let unlocked = false;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
 
+// ==== Reset / Init ====
+function resetPlayer() {
+  // Stoppe Videos & leere Quellen
+  videoA.pause(); videoB.pause();
+  videoA.src = ""; videoB.src = "";
+
+  // Startbild & Overlay sichtbar
+  startImage.style.display = "block";
+  startOverlay.style.display = "flex";
+
+  // CSS Klassen entfernen
+  videoA.classList.remove("active");
+  videoB.classList.remove("active");
+
+  // Reset States
+  activeVideo = videoA;
+  inactiveVideo = videoB;
+  index = 0;
+  unlocked = false;
+  isTransitioning = false;
+  shakeLocked = false;
+
+  resetInactivity();
+}
+
+window.addEventListener("load", () => {
+  resetPlayer();
+  requestDeviceMotionPermission();
+});
+
+// ==== Inaktivität ====
+function resetInactivity() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+    window.location.href = "index.html";
+  }, 20000);
+}
+
+// ==== Crossfade & Video Laden ====
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
@@ -36,7 +76,7 @@ function loadVideo(src) {
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = false;
+  inactiveVideo.muted = true; // Autoplay auf iOS/Android
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
@@ -51,10 +91,13 @@ function loadVideo(src) {
       setTimeout(() => {
         shakeLocked = false;
       }, 1200);
+    }).catch(err => {
+      console.warn("Video konnte nicht automatisch starten:", err);
     });
   };
 }
 
+// ==== Playlist-Steuerung ====
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
@@ -72,23 +115,15 @@ function nextVideo() {
   loadVideo(playlists[city][index]);
 }
 
-function resetInactivity() {
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => {
-    window.location.href = "index.html";
-  }, 20000);
-}
-resetInactivity();
-
-// Shake Detection
+// ==== Shake Detection ====
 let lastX = null, lastY = null, lastZ = null;
-const threshold = 7;
+const threshold = 7; // sanftere Shake-Sensibilität
 
-window.addEventListener("devicemotion", e => {
+function shakeHandler(e) {
   const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
+  if (!acc || !unlocked || shakeLocked) return;
 
-  if (unlocked && !shakeLocked && lastX !== null) {
+  if (lastX !== null) {
     const delta =
       Math.abs(acc.x - lastX) +
       Math.abs(acc.y - lastY) +
@@ -100,8 +135,25 @@ window.addEventListener("devicemotion", e => {
   lastX = acc.x;
   lastY = acc.y;
   lastZ = acc.z;
-});
+}
 
-// Touch Unlock
+// ==== iOS DeviceMotion Berechtigung ====
+function requestDeviceMotionPermission() {
+  if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted') {
+          window.addEventListener('devicemotion', shakeHandler);
+        } else {
+          console.warn("DeviceMotion nicht erlaubt");
+        }
+      })
+      .catch(console.error);
+  } else {
+    window.addEventListener('devicemotion', shakeHandler);
+  }
+}
+
+// ==== Overlay Touch ====
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
