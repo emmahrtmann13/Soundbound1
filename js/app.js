@@ -16,15 +16,16 @@ if (!city || !playlists[city]) {
 // --- DOM ---
 const player = document.getElementById("player");
 const startImage = document.getElementById("startImage");
+const startOverlay = document.getElementById("startOverlay");
 
-// --- Video Layer Variablen ---
+// --- Video Layer ---
 let videoA, videoB;
 let activeVideo, inactiveVideo;
 
 // --- Playlist Index pro Stadt ---
 const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
-let unlocked = false; // erste Interaktion
+let unlocked = false;
 let inactivityTimer = null;
 let isTransitioning = false;
 
@@ -73,7 +74,6 @@ function loadVideo(src) {
   };
 
   inactiveVideo.addEventListener('playing', onPlaying);
-
   inactiveVideo.play().catch(()=>{ isTransitioning = false; });
 }
 
@@ -82,30 +82,20 @@ function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
 
+  // Overlay ausblenden
+  startOverlay.style.display = "none";
+
   // Videos erzeugen
   createVideos();
 
-  // Index auf 0 setzen
+  // Index auf 0
   cityIndex[city] = 0;
 
-  // Startbild bleibt sichtbar bis erstes Video wirklich spielt
+  // Video 1 starten
   inactiveVideo = videoA;
   activeVideo = videoB;
 
-  inactiveVideo.src = playlists[city][cityIndex[city]];
-  inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block";
-  inactiveVideo.load();
-
-  const onPlaying = () => {
-    inactiveVideo.removeEventListener('playing', onPlaying);
-    startImage.style.display = "none"; // erst jetzt ausblenden
-    crossfade();
-    isTransitioning = false;
-  };
-  inactiveVideo.addEventListener('playing', onPlaying);
-
-  inactiveVideo.play().catch(()=>{ isTransitioning = false; });
+  loadVideo(playlists[city][cityIndex[city]]);
 }
 
 // --- Nächstes Video ---
@@ -134,9 +124,7 @@ window.addEventListener("devicemotion", e=>{
   const acc = e.accelerationIncludingGravity;
   if(!acc) return;
 
-  if(!unlocked){
-    startPlaylist(); // erster Shake → Start
-  }else{
+  if(unlocked){
     if(lastX !== null){
       const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
       if(delta>threshold) nextVideo();
@@ -148,5 +136,6 @@ window.addEventListener("devicemotion", e=>{
   lastZ = acc.z;
 });
 
-// --- Touch/Klick als Unlock (Autoplay-Policy Android) ---
-window.addEventListener("touchstart", startPlaylist, {onc
+// --- Touchstart & Click als Unlock ---
+startOverlay.addEventListener("click", startPlaylist);
+startOverlay.addEventListener("touchstart", startPlaylist);
