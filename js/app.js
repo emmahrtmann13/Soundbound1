@@ -43,18 +43,26 @@ function loadVideo(src) {
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = false;  // Ton aktivieren
+  inactiveVideo.muted = false;
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
-  const onPlaying = () => {
-    inactiveVideo.removeEventListener('playing', onPlaying);
-    crossfade();
-    isTransitioning = false;
-  };
+  // Warten bis das Video mindestens einen Frame geladen hat
+  inactiveVideo.addEventListener('loadeddata', function onData() {
+    inactiveVideo.removeEventListener('loadeddata', onData);
+    
+    // Startbild ausblenden
+    startImage.style.display = "none";
 
-  inactiveVideo.addEventListener('playing', onPlaying);
-  inactiveVideo.play().catch(()=>{ isTransitioning = false; });
+    // Video mit Ton starten
+    inactiveVideo.play().then(()=>{
+      crossfade();
+      isTransitioning = false;
+    }).catch(()=>{
+      console.warn("Play wurde blockiert, bitte Touch erneut.");
+      isTransitioning = false;
+    });
+  });
 }
 
 // --- Playlist starten ---
