@@ -13,6 +13,7 @@ if (!city || !playlists[city]) {
   window.location.href = startFallback;
 }
 
+const startVideo = document.getElementById("startVideo");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
 
@@ -22,11 +23,12 @@ let index = 0;
 let audioUnlocked = false;
 let inactivityTimer = null;
 
-// Querformat lock (best effort)
+// Querformat lock
 if (screen.orientation && screen.orientation.lock) {
   screen.orientation.lock("landscape").catch(() => {});
 }
 
+// --- FUNKTIONEN ---
 function loadVideo(src, withSound) {
   inactiveVideo.src = src;
   inactiveVideo.muted = !withSound;
@@ -50,13 +52,16 @@ function nextVideo() {
 
   if (!audioUnlocked) {
     audioUnlocked = true;
+    // StartPlaylist, erste Video der Stadt
+    index = 0;
+    startVideo.pause();
+    startVideo.style.display = "none"; // Startvideo ausblenden
+    loadVideo(playlists[city][index], true);
+  } else {
+    // Nächstes Video
+    index = (index + 1) % playlists[city].length;
+    loadVideo(playlists[city][index], true);
   }
-
-  const list = playlists[city];
-  const src = list[index];
-  loadVideo(src, true);
-
-  index = (index + 1) % list.length;
 }
 
 function resetInactivity() {
@@ -66,7 +71,7 @@ function resetInactivity() {
   }, 20000);
 }
 
-// Shake Detection
+// --- SHAKE DETECTION ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -89,5 +94,5 @@ window.addEventListener("devicemotion", (e) => {
   lastZ = acc.z;
 });
 
-// Initial inactivity timer
+// --- INACTIVITY TIMER ---
 resetInactivity();
