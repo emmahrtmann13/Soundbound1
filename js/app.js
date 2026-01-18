@@ -82,7 +82,7 @@ resetInactivity();
 
 // Shake Detection
 let lastX = null, lastY = null, lastZ = null;
-const threshold = 12;
+const threshold = 7;
 
 window.addEventListener("devicemotion", e => {
   const acc = e.accelerationIncludingGravity;
