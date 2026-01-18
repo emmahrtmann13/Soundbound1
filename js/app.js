@@ -7,14 +7,21 @@ const playlists = {
   wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
 };
 
+const cityNames = {
+  hamburg: "HAMBURG",
+  berlin: "BERLIN",
+  wien: "WIEN"
+};
+
 if (!city || !playlists[city]) {
   window.location.href = "index.html";
 }
 
-const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
+
+startOverlay.innerText = "START " + cityNames[city];
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
@@ -37,11 +44,9 @@ function loadVideo(src) {
 
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
   inactiveVideo.oncanplay = () => {
-    startImage.style.display = "none";
     startOverlay.style.display = "none";
 
     inactiveVideo.play().then(() => {
