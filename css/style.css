@@ -1,42 +1,28 @@
-html,body{
-  margin:0;
-  width:100%;
-  height:100%;
-  background:black;
-  overflow:hidden;
+
+
+@@ -14,6 +14,24 @@ html, body {
+  object-fit: cover;
 }
 
-#player{
-  position:fixed;
-  inset:0;
-  background:black;
+#startOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  color: white;
+  background: rgba(0,0,0,0.5);
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
 }
 
-/* Startscreen Text */
-.startText{
-  position:fixed;
-  inset:0;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:3rem;
-  letter-spacing:0.2em;
-  color:white;
-  background:black;
-  cursor:pointer;
-}
+/* Video Layer */
+video {
+  position: absolute;
+  width: 100%;
 
-/* Dynamisch erzeugte Videos */
-video{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  opacity:0;
-  transition:opacity 1.2s linear;
-}
-
-video.active{
-  opacity:1;
-}

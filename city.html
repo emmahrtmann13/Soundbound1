@@ -1,19 +1,13 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="css/style.css">
-<title>Soundbound</title>
-</head>
-<body>
+city.html
 
-<div id="player">
-  <!-- Schwarzer Startscreen mit Text -->
-  <div id="startOverlay" class="startText">START</div>
+@@ -15,9 +15,9 @@
+  <!-- Overlay für Touch -->
+  <div id="startOverlay">Tippe hier, um zu starten</div>
 
-  <!-- Video-Elemente (werden dynamisch erstellt) -->
+  <!-- Video-Layer im DOM -->
+  <video id="videoA" playsinline style="display:none"></video>
+  <video id="videoB" playsinline style="display:none"></video>
 </div>
 
 <script src="js/app.js"></script>
-</body>
-</html>
+
