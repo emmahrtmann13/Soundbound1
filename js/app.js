@@ -104,18 +104,28 @@ function resetInactivity() {
 }
 resetInactivity();
 
-// --- Shake Detection ---
+// --- Shake Detection mit Cooldown ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
+let shakeLocked = false;
 
 window.addEventListener("devicemotion", e=>{
   const acc = e.accelerationIncludingGravity;
   if(!acc) return;
 
-  if(unlocked){
+  if(unlocked && !shakeLocked){
     if(lastX !== null){
       const delta = Math.abs(acc.x-lastX)+Math.abs(acc.y-lastY)+Math.abs(acc.z-lastZ);
-      if(delta>threshold) nextVideo();
+      
+      if(delta > threshold){
+        shakeLocked = true;
+        nextVideo();
+
+        // Cooldown: erst nach 1.5 Sekunden wieder erlauben
+        setTimeout(() => {
+          shakeLocked = false;
+        }, 1500);
+      }
     }
   }
 
