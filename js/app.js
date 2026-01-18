@@ -18,7 +18,6 @@ const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
 const videoA = document.getElementById("videoA");
 const videoB = document.getElementById("videoB");
-const player = document.getElementById("player");
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
@@ -30,7 +29,7 @@ let unlocked = false;
 let isTransitioning = false;
 let inactivityTimer = null;
 
-// --- Crossfade ---
+// --- Crossfade Funktion ---
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
@@ -43,23 +42,28 @@ function loadVideo(src) {
   isTransitioning = true;
 
   inactiveVideo.src = src;
-  inactiveVideo.muted = false;
-  inactiveVideo.style.display = "block";
+  inactiveVideo.muted = false;           // Ton aktivieren
+  inactiveVideo.style.display = "block"; // sicherstellen sichtbar
   inactiveVideo.load();
 
-  // Warten bis das Video mindestens einen Frame geladen hat
   inactiveVideo.addEventListener('loadeddata', function onData() {
     inactiveVideo.removeEventListener('loadeddata', onData);
-    
-    // Startbild ausblenden
-    startImage.style.display = "none";
 
-    // Video mit Ton starten
+    // Startbild + Overlay ausblenden, bevor Crossfade
+    startImage.style.display = "none";
+    startOverlay.style.display = "none";
+
+    // Crossfade sichtbar machen
+    inactiveVideo.classList.add("active");
+    activeVideo.classList.remove("active");
+
+    // Video abspielen
     inactiveVideo.play().then(()=>{
-      crossfade();
+      // Layer tauschen
+      [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
       isTransitioning = false;
     }).catch(()=>{
-      console.warn("Play wurde blockiert, bitte Touch erneut.");
+      console.warn("Play blockiert, bitte Touch erneut");
       isTransitioning = false;
     });
   });
