@@ -26,6 +26,7 @@ const cityIndex = { hamburg:0, berlin:0, wien:0 };
 
 let unlocked = false;
 let inactivityTimer = null;
+let isTransitioning = false;
 
 // --- Funktionen ---
 function createVideos() {
@@ -50,11 +51,25 @@ function createVideos() {
 }
 
 function loadVideo(src) {
+  if (isTransitioning) return;
+  isTransitioning = true;
+
   inactiveVideo.src = src;
   inactiveVideo.muted = false;
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
-  inactiveVideo.play().then(() => crossfade()).catch(()=>{});
+
+  inactiveVideo.play().then(() => {
+    const onPlaying = () => {
+      inactiveVideo.removeEventListener('playing', onPlaying);
+      // perform crossfade once the new video is actually playing
+      crossfade();
+      // hide start image once first video is visible
+      if (startImage && startImage.style.display !== "none") startImage.style.display = "none";
+      isTransitioning = false;
+    };
+    inactiveVideo.addEventListener('playing', onPlaying);
+  }).catch(()=>{ isTransitioning = false; });
 }
 
 function crossfade() {
