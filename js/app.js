@@ -19,7 +19,7 @@ const videoB = document.getElementById("videoB");
 
 let activeVideo = videoA;
 let inactiveVideo = videoB;
-let index = 0;
+let index = 0; // Zeigt immer das nächste Video an
 let audioUnlocked = false;
 let inactivityTimer = null;
 
@@ -28,7 +28,8 @@ if (screen.orientation && screen.orientation.lock) {
   screen.orientation.lock("landscape").catch(() => {});
 }
 
-// --- FUNKTIONEN ---
+// --- Funktionen ---
+
 function loadVideo(src, withSound) {
   inactiveVideo.src = src;
   inactiveVideo.muted = !withSound;
@@ -41,10 +42,7 @@ function loadVideo(src, withSound) {
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
-
-  const temp = activeVideo;
-  activeVideo = inactiveVideo;
-  inactiveVideo = temp;
+  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
 }
 
 function nextVideo() {
@@ -52,13 +50,12 @@ function nextVideo() {
 
   if (!audioUnlocked) {
     audioUnlocked = true;
-    // StartPlaylist, erste Video der Stadt
-    index = 0;
     startVideo.pause();
     startVideo.style.display = "none"; // Startvideo ausblenden
+    index = 0;
     loadVideo(playlists[city][index], true);
   } else {
-    // Nächstes Video
+    // Index hochzählen
     index = (index + 1) % playlists[city].length;
     loadVideo(playlists[city][index], true);
   }
@@ -71,7 +68,7 @@ function resetInactivity() {
   }, 20000);
 }
 
-// --- SHAKE DETECTION ---
+// --- Shake Detection ---
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -94,5 +91,5 @@ window.addEventListener("devicemotion", (e) => {
   lastZ = acc.z;
 });
 
-// --- INACTIVITY TIMER ---
+// --- Inactivity Timer ---
 resetInactivity();
