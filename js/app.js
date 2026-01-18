@@ -102,6 +102,11 @@ function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
   index = 0;
+
+  // Ton aktivieren, jetzt darf Audio abgespielt werden
+  inactiveVideo.muted = false;
+  activeVideo.muted = false;
+
   loadVideo(playlists[city][index]);
 }
 
