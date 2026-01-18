@@ -1,4 +1,3 @@
-// --- Parameter & Playlists ---
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -8,12 +7,10 @@ const playlists = {
   wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
 };
 
-const startFallback = "index.html";
 if (!city || !playlists[city]) {
-  window.location.href = startFallback;
+  window.location.href = "index.html";
 }
 
-// --- DOM ---
 const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
 const videoA = document.getElementById("videoA");
@@ -22,21 +19,18 @@ const videoB = document.getElementById("videoB");
 let activeVideo = videoA;
 let inactiveVideo = videoB;
 
-// --- State ---
 let index = 0;
 let unlocked = false;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
 
-// --- Crossfade ---
 function crossfade() {
   inactiveVideo.classList.add("active");
   activeVideo.classList.remove("active");
   [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
 }
 
-// --- Video laden & spielen ---
 function loadVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
@@ -46,31 +40,21 @@ function loadVideo(src) {
   inactiveVideo.style.display = "block";
   inactiveVideo.load();
 
-  inactiveVideo.addEventListener("loadeddata", function onLoad() {
-    inactiveVideo.removeEventListener("loadeddata", onLoad);
-
-    // Startbild ausblenden
+  inactiveVideo.oncanplay = () => {
     startImage.style.display = "none";
     startOverlay.style.display = "none";
 
     inactiveVideo.play().then(() => {
       crossfade();
-
-      // Altes Video wirklich stoppen
-      inactiveVideo.pause();
-      inactiveVideo.currentTime = 0;
-
       isTransitioning = false;
 
-      // Shake erst nach Fade wieder erlauben
       setTimeout(() => {
         shakeLocked = false;
       }, 1200);
     });
-  });
+  };
 }
 
-// --- Start per Touch ---
 function startPlaylist() {
   if (unlocked) return;
   unlocked = true;
@@ -78,7 +62,6 @@ function startPlaylist() {
   loadVideo(playlists[city][index]);
 }
 
-// --- Nächstes Video per Shake ---
 function nextVideo() {
   if (!unlocked || isTransitioning || shakeLocked) return;
 
@@ -89,16 +72,15 @@ function nextVideo() {
   loadVideo(playlists[city][index]);
 }
 
-// --- Inaktivität ---
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    window.location.href = startFallback;
+    window.location.href = "index.html";
   }, 20000);
 }
 resetInactivity();
 
-// --- Shake Detection ---
+// Shake Detection
 let lastX = null, lastY = null, lastZ = null;
 const threshold = 18;
 
@@ -120,6 +102,6 @@ window.addEventListener("devicemotion", e => {
   lastZ = acc.z;
 });
 
-// --- Touch Unlock (Autoplay-Freigabe) ---
+// Touch Unlock
 startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
