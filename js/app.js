@@ -25,7 +25,7 @@ let unlocked = false;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
-let firstInteraction = false; // für Tonfreigabe
+let firstInteraction = false;
 
 // ==== Reset / Init ====
 function resetPlayer() {
@@ -49,10 +49,8 @@ function resetPlayer() {
   resetInactivity();
 }
 
-window.addEventListener("load", () => {
-  resetPlayer();
-  requestDeviceMotionPermission();
-});
+// Reset beim Laden
+window.addEventListener("load", resetPlayer);
 
 // ==== Inaktivität ====
 function resetInactivity() {
@@ -75,11 +73,11 @@ function loadVideo(src) {
 
   inactiveVideo.src = src;
   inactiveVideo.style.display = "block";
-  inactiveVideo.load();
 
-  // Stumm starten nur vor erster Interaktion
+  // Vor erster Interaktion stumm starten für Autoplay
   if (!firstInteraction) inactiveVideo.muted = true;
 
+  inactiveVideo.load();
   inactiveVideo.oncanplay = () => {
     startImage.style.display = "none";
     startOverlay.style.display = "none";
@@ -88,10 +86,8 @@ function loadVideo(src) {
       crossfade();
       isTransitioning = false;
 
-      // Nach 1,5s wieder Shakes erlauben
-      setTimeout(() => {
-        shakeLocked = false;
-      }, 1500);
+      // Shake-Delay 1,5s
+      setTimeout(() => shakeLocked = false, 1500);
     }).catch(err => {
       console.warn("Video konnte nicht automatisch starten:", err);
     });
@@ -104,7 +100,7 @@ function startPlaylist() {
   unlocked = true;
   firstInteraction = true;
 
-  // Ton aktivieren nach erstem Tippen
+  // Ton nach erstem Tippen freigeben
   videoA.muted = false;
   videoB.muted = false;
 
@@ -124,7 +120,7 @@ function nextVideo() {
 
 // ==== Shake Detection ====
 let lastX = null, lastY = null, lastZ = null;
-const threshold = 8;
+const threshold = 15;
 
 function shakeHandler(e) {
   const acc = e.accelerationIncludingGravity;
@@ -151,8 +147,6 @@ function requestDeviceMotionPermission() {
       .then(permissionState => {
         if (permissionState === 'granted') {
           window.addEventListener('devicemotion', shakeHandler);
-        } else {
-          console.warn("DeviceMotion nicht erlaubt");
         }
       })
       .catch(console.error);
@@ -160,6 +154,8 @@ function requestDeviceMotionPermission() {
     window.addEventListener('devicemotion', shakeHandler);
   }
 }
+
+requestDeviceMotionPermission();
 
 // ==== Overlay Touch ====
 startOverlay.addEventListener("click", startPlaylist);

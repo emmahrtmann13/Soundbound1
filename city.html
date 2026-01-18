@@ -4,22 +4,31 @@
 <meta charset="UTF-8">
 <title>City Player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=2">
+
+<!-- Cache-Bypass -->
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+
+<script>
+  // Immer denselben Tab verwenden
+  if (window.name !== "player") {
+    window.name = "player";
+    window.location.replace(window.location.href);
+  }
+</script>
 </head>
 <body>
 
 <div id="player">
-  <!-- Startbild -->
   <img id="startImage" src="img/start.jpg" alt="Start">
-
-  <!-- Overlay für Touch -->
   <div id="startOverlay">Stadt anschauen</div>
 
-  <!-- Video-Layer im DOM -->
   <video id="videoA" playsinline style="display:none"></video>
   <video id="videoB" playsinline style="display:none"></video>
 </div>
 
-<script src="js/app.js"></script>
+<script src="js/app.js?v=2"></script>
 </body>
 </html>
