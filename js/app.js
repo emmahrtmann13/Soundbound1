@@ -29,21 +29,23 @@ let firstInteraction = false;
 
 // ==== Reset / Init ====
 function resetPlayer() {
-  // Stoppe Videos
-  videoA.pause();
-  videoB.pause();
-  videoA.src = "";
-  videoB.src = "";
+  [videoA, videoB].forEach(v => {
+    v.pause();
+    v.removeAttribute("src");
+    v.load();
+    v.style.display = "none";
+    v.classList.remove("active");
+  });
 
-  // Zeige Overlay & Startbild
-  startImage.style.display = "block";
-  startOverlay.style.display = "flex";
+  // DOM komplett neu bauen (killt Chrome Video-Bug)
+  const player = document.getElementById("player");
+  videoA.replaceWith(videoA.cloneNode(true));
+  videoB.replaceWith(videoB.cloneNode(true));
 
-  // Entferne Active-Klassen
-  videoA.classList.remove("active");
-  videoB.classList.remove("active");
+  // Referenzen neu holen
+  window.videoA = document.getElementById("videoA");
+  window.videoB = document.getElementById("videoB");
 
-  // Reset States
   activeVideo = videoA;
   inactiveVideo = videoB;
   index = 0;
@@ -52,6 +54,9 @@ function resetPlayer() {
   shakeLocked = false;
   firstInteraction = false;
 
+  startImage.style.display = "block";
+  startOverlay.style.display = "flex";
+
   resetInactivity();
 }
 
@@ -59,7 +64,7 @@ function resetPlayer() {
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    window.location.href = "index.html";
+    window.location.replace("index.html?reset=" + Date.now());
   }, 20000);
 }
 
