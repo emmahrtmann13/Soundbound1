@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>City Player</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<link rel="stylesheet" href="css/style.css?v=3">
+<link rel="stylesheet" href="css/style.css">
 
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
@@ -13,11 +13,18 @@
 <body>
 
 <div id="player">
-  <img id="startImage" src="img/start.jpg" alt="Start">
+
+  <!-- Startvideo (stumm, loop) -->
+  <video id="startVideo" autoplay muted loop playsinline webkit-playsinline>
+    <source src="videos/start.mp4" type="video/mp4">
+  </video>
+
   <div id="startOverlay">Stadt anschauen</div>
+
   <div id="videoContainer"></div>
+
 </div>
 
-<script src="js/app.js?v=4"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

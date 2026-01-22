@@ -1,136 +1,113 @@
-// ==== Parameter & Playlists ====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
 const playlists = {
-  hamburg: ["videos/hamburg1.mp4", "videos/hamburg2.mp4", "videos/hamburg3.mp4"],
-  berlin:  ["videos/berlin1.mp4", "videos/berlin2.mp4", "videos/berlin3.mp4"],
-  wien:    ["videos/wien1.mp4", "videos/wien2.mp4", "videos/wien3.mp4"]
+  hamburg: ["videos/hamburg1.mp4","videos/hamburg2.mp4","videos/hamburg3.mp4"],
+  berlin:  ["videos/berlin1.mp4","videos/berlin2.mp4","videos/berlin3.mp4"],
+  wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
 };
 
 if (!city || !playlists[city]) {
-  window.location.replace("index.html");
+  window.location.href = "index.html";
 }
 
-// ==== DOM Elemente ====
-const startImage = document.getElementById("startImage");
+const startVideo = document.getElementById("startVideo");
 const startOverlay = document.getElementById("startOverlay");
 const videoContainer = document.getElementById("videoContainer");
 
-let videos = [];
-let activeIndex = 0;
-let playlistIndex = 0;
+let videoA, videoB;
+let activeVideo, inactiveVideo;
+let index = 0;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
 
-// ==== Inaktivität 20s ====
+// ---------- Inaktivität ----------
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    videos.forEach(v => {
-      v.pause();
-      v.src = "";
-      v.remove();
-    });
-    window.location.replace("index.html?reset=" + Date.now());
+    window.location.href = "index.html?reset=" + Date.now();
   }, 20000);
 }
 
-// ==== Videos erstellen für Crossfade ====
+// ---------- Video Setup ----------
 function createVideos() {
   videoContainer.innerHTML = "";
-  videos = [];
-  for (let i = 0; i < 2; i++) {
-    const v = document.createElement("video");
+
+  videoA = document.createElement("video");
+  videoB = document.createElement("video");
+
+  [videoA, videoB].forEach(v => {
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
     v.style.position = "absolute";
     v.style.width = "100%";
     v.style.height = "100%";
     v.style.objectFit = "cover";
-    v.style.opacity = 0;
-    v.style.transition = "opacity 1.5s linear";
-    v.setAttribute("playsinline", "");
-    v.setAttribute("webkit-playsinline", "");
-    v.muted = true;
+    v.classList.add("video");
     videoContainer.appendChild(v);
-    videos.push(v);
-  }
+  });
+
+  activeVideo = videoA;
+  inactiveVideo = videoB;
 }
 
-// ==== Crossfade ====
 function crossfade() {
-  const active = videos[activeIndex];
-  const inactive = videos[1 - activeIndex];
-  inactive.style.opacity = 1;
-  active.style.opacity = 0;
-  activeIndex = 1 - activeIndex;
+  inactiveVideo.classList.add("active");
+  activeVideo.classList.remove("active");
+  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
 }
 
-// ==== Video laden & abspielen ====
 function loadVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
-  resetInactivity();
 
-  const inactive = videos[1 - activeIndex];
-  inactive.src = src;
-  inactive.style.display = "block";
-
-  inactive.load();
-  inactive.oncanplay = () => {
-    inactive.play().then(() => {
-      crossfade();
-      isTransitioning = false;
-
-      shakeLocked = true;
-      setTimeout(() => shakeLocked = false, 3000);
-    }).catch(err => console.warn("Play fehlgeschlagen:", err));
-  };
+  inactiveVideo.src = src;
+  inactiveVideo.load();
+  inactiveVideo.play().then(() => {
+    crossfade();
+    isTransitioning = false;
+    setTimeout(() => shakeLocked = false, 3000); // 3 Sekunden Shake-Sperre
+  });
 }
 
-// ==== Playlist starten ====
-function startPlaylist() {
-  // Erstes Video dynamisch erzeugen + direkt abspielen
-  videoContainer.innerHTML = "";
-  const firstVideo = document.createElement("video");
-  firstVideo.style.position = "absolute";
-  firstVideo.style.width = "100%";
-  firstVideo.style.height = "100%";
-  firstVideo.style.objectFit = "cover";
-  firstVideo.setAttribute("playsinline", "");
-  firstVideo.setAttribute("webkit-playsinline", "");
-  firstVideo.muted = false;
-  videoContainer.appendChild(firstVideo);
+// ---------- Start ----------
+function startExperience() {
+  startOverlay.style.display = "none";
+  startVideo.pause();
+  startVideo.style.display = "none";
 
-  firstVideo.src = playlists[city][0];
-  firstVideo.load();
-  firstVideo.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
-
-  // Danach Crossfade Videos erzeugen
   createVideos();
-  playlistIndex = 1;
+
+  activeVideo.muted = false;
+  inactiveVideo.muted = false;
+
+  index = 0;
+  loadVideo(playlists[city][index]);
+  resetInactivity();
 }
 
-// ==== Nächstes Video (Shake) ====
-function nextVideo() {
-  if (isTransitioning || shakeLocked) return;
-  playlistIndex = (playlistIndex + 1) % playlists[city].length;
-  loadVideo(playlists[city][playlistIndex]);
-}
+startOverlay.addEventListener("click", startExperience);
+startOverlay.addEventListener("touchstart", startExperience);
 
-// ==== Shake Detection ====
-let lastX = null, lastY = null, lastZ = null;
-const threshold = 15;
+// ---------- Shake ----------
+let lastX, lastY, lastZ;
+const threshold = 18;
 
 function shakeHandler(e) {
-  const acc = e.accelerationIncludingGravity;
-  if (!acc || shakeLocked) return;
+  if (shakeLocked) return;
 
-  if (lastX !== null) {
-    const delta = Math.abs(acc.x - lastX) +
-                  Math.abs(acc.y - lastY) +
-                  Math.abs(acc.z - lastZ);
-    if (delta > threshold) nextVideo();
+  const acc = e.accelerationIncludingGravity;
+  if (!acc) return;
+
+  if (lastX !== undefined) {
+    const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
+    if (delta > threshold) {
+      shakeLocked = true;
+      index = (index + 1) % playlists[city].length;
+      loadVideo(playlists[city][index]);
+      resetInactivity();
+    }
   }
 
   lastX = acc.x;
@@ -138,32 +115,10 @@ function shakeHandler(e) {
   lastZ = acc.z;
 }
 
-// ==== DeviceMotion Permission (iOS) ====
-function requestDeviceMotionPermission() {
-  if (typeof DeviceMotionEvent !== 'undefined' &&
-      typeof DeviceMotionEvent.requestPermission === 'function') {
-    DeviceMotionEvent.requestPermission()
-      .then(permissionState => {
-        if (permissionState === 'granted')
-          window.addEventListener('devicemotion', shakeHandler);
-      })
-      .catch(console.error);
-  } else {
-    window.addEventListener('devicemotion', shakeHandler);
-  }
+if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+  DeviceMotionEvent.requestPermission().then(res => {
+    if (res === "granted") window.addEventListener("devicemotion", shakeHandler);
+  });
+} else {
+  window.addEventListener("devicemotion", shakeHandler);
 }
-
-requestDeviceMotionPermission();
-
-// ==== Overlay Tap ====
-startOverlay.addEventListener("click", () => {
-  startOverlay.style.display = "none";
-  startImage.style.display = "none";
-  startPlaylist();
-});
-startOverlay.addEventListener("touchstart", () => {
-  startOverlay.dispatchEvent(new Event("click"));
-});
-
-// ==== Initial Inaktivität starten ====
-resetInactivity();
