@@ -156,8 +156,32 @@ function requestDeviceMotionPermission() {
 requestDeviceMotionPermission();
 
 // ==== Overlay Tap ====
-startOverlay.addEventListener("click", startPlaylist);
-startOverlay.addEventListener("touchstart", startPlaylist);
+startOverlay.addEventListener("click", () => {
+  startOverlay.style.display = "none";
+  startImage.style.display = "none";
+
+  // Playlist starten + erste User-Gesture für Audio
+  startPlaylist();
+
+  // Direkt Ton freigeben und Play erzwingen
+  videos.forEach(v => {
+    v.muted = false;
+    v.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
+  });
+});
+
+startOverlay.addEventListener("touchstart", () => {
+  startOverlay.style.display = "none";
+  startImage.style.display = "none";
+
+  startPlaylist();
+
+  videos.forEach(v => {
+    v.muted = false;
+    v.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
+  });
+});
+
 
 // ==== Initial Inaktivität starten ====
 resetInactivity();
