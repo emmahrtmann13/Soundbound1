@@ -8,7 +8,6 @@ const playlists = {
   wien:    ["videos/wien1.mp4", "videos/wien2.mp4", "videos/wien3.mp4"]
 };
 
-// Ungültige Stadt → Startseite
 if (!city || !playlists[city]) {
   window.location.replace("index.html");
 }
@@ -19,8 +18,8 @@ const startOverlay = document.getElementById("startOverlay");
 const videoContainer = document.getElementById("videoContainer");
 
 let videos = [];
-let activeIndex = 0;      // Index im Videos-Array (0 oder 1)
-let playlistIndex = 0;    // Aktuelles Video in Playlist
+let activeIndex = 0;
+let playlistIndex = 0;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
@@ -29,7 +28,6 @@ let inactivityTimer = null;
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    // Pause + Container leeren
     videos.forEach(v => {
       v.pause();
       v.src = "";
@@ -39,14 +37,12 @@ function resetInactivity() {
   }, 20000);
 }
 
-// ==== Videos erstellen (2 für Crossfade) ====
+// ==== Videos erstellen für Crossfade ====
 function createVideos() {
   videoContainer.innerHTML = "";
   videos = [];
-
   for (let i = 0; i < 2; i++) {
     const v = document.createElement("video");
-    v.style.display = "none";
     v.style.position = "absolute";
     v.style.width = "100%";
     v.style.height = "100%";
@@ -86,7 +82,6 @@ function loadVideo(src) {
       crossfade();
       isTransitioning = false;
 
-      // Shake erst nach 3 Sekunden wieder freigeben
       shakeLocked = true;
       setTimeout(() => shakeLocked = false, 3000);
     }).catch(err => console.warn("Play fehlgeschlagen:", err));
@@ -95,9 +90,25 @@ function loadVideo(src) {
 
 // ==== Playlist starten ====
 function startPlaylist() {
+  // Erstes Video dynamisch erzeugen + direkt abspielen
+  videoContainer.innerHTML = "";
+  const firstVideo = document.createElement("video");
+  firstVideo.style.position = "absolute";
+  firstVideo.style.width = "100%";
+  firstVideo.style.height = "100%";
+  firstVideo.style.objectFit = "cover";
+  firstVideo.setAttribute("playsinline", "");
+  firstVideo.setAttribute("webkit-playsinline", "");
+  firstVideo.muted = false;
+  videoContainer.appendChild(firstVideo);
+
+  firstVideo.src = playlists[city][0];
+  firstVideo.load();
+  firstVideo.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
+
+  // Danach Crossfade Videos erzeugen
   createVideos();
-  playlistIndex = 0;
-  loadVideo(playlists[city][playlistIndex]);
+  playlistIndex = 1;
 }
 
 // ==== Nächstes Video (Shake) ====
@@ -144,35 +155,15 @@ function requestDeviceMotionPermission() {
 
 requestDeviceMotionPermission();
 
-// ==== Overlay Tap (erstes Video + Audio) ====
-function handleOverlayTap() {
-  // Overlay ausblenden
+// ==== Overlay Tap ====
+startOverlay.addEventListener("click", () => {
   startOverlay.style.display = "none";
   startImage.style.display = "none";
-
-  // Erstes Video benutzen
-  const initial = document.getElementById("initialVideo");
-  initial.muted = false; // Ton freigeben
-  initial.src = playlists[city][0];
-  initial.style.display = "block";
-  initial.load();
-  initial.play().catch(err => console.warn("Play fehlgeschlagen:", err));
-
-  // Danach dynamische Videos für Crossfade erstellen
-  createVideos();
-
-  // Setze PlaylistIndex auf 1 für den nächsten Shake
-  playlistIndex = 1;
-
-  // Direkt Ton freigeben + erstes Video starten
-  if (videos.length > 0) {
-    videos[0].muted = false;
-    videos[0].play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
-  }
-}
-
-startOverlay.addEventListener("click", handleOverlayTap);
-startOverlay.addEventListener("touchstart", handleOverlayTap);
+  startPlaylist();
+});
+startOverlay.addEventListener("touchstart", () => {
+  startOverlay.dispatchEvent(new Event("click"));
+});
 
 // ==== Initial Inaktivität starten ====
 resetInactivity();

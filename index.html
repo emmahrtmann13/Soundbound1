@@ -9,6 +9,15 @@
 <body>
   <div id="container">
     <img src="img/start.jpg" alt="Start" id="startImage">
+    <div id="startOverlay">Karte scannen</div>
   </div>
+
+  <script>
+    // NFC-Scan Simulation / Test: Klick auf Overlay startet Stadt
+    document.getElementById("startOverlay").addEventListener("click", () => {
+      // Hier wird die Seite frisch geladen mit Cache-Buster
+      window.location.href = "city.html?city=berlin&fresh=" + Date.now();
+    });
+  </script>
 </body>
 </html>
