@@ -1,132 +1,136 @@
+// ==== Parameter & Playlists ====
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
 const playlists = {
-  hamburg: ["videos/hamburg1.mp4","videos/hamburg2.mp4","videos/hamburg3.mp4"],
-  berlin:  ["videos/berlin1.mp4","videos/berlin2.mp4","videos/berlin3.mp4"],
-  wien:    ["videos/wien1.mp4","videos/wien2.mp4","videos/wien3.mp4"]
+  hamburg: ["videos/hamburg1.mp4", "videos/hamburg2.mp4", "videos/hamburg3.mp4"],
+  berlin:  ["videos/berlin1.mp4", "videos/berlin2.mp4", "videos/berlin3.mp4"],
+  wien:    ["videos/wien1.mp4", "videos/wien2.mp4", "videos/wien3.mp4"]
 };
 
 if (!city || !playlists[city]) {
-  window.location.href = "index.html";
+  window.location.replace("index.html");
 }
 
-const startVideo = document.getElementById("startVideo");
+// ==== DOM Elemente ====
+const startImage = document.getElementById("startImage");
 const startOverlay = document.getElementById("startOverlay");
 const videoContainer = document.getElementById("videoContainer");
 
-let videoA, videoB;
-let activeVideo, inactiveVideo;
-let index = 0;
+let videos = [];
+let activeIndex = 0; // Index im Videos-Array (0 oder 1)
+let playlistIndex = 0; // Index in der Playlist
+let unlocked = false;
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
 
-// ---------- Inaktivität ----------
+// ==== Inaktivität Timer ====
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    window.location.href = "index.html?reset=" + Date.now();
+    // Pause Videos und Container leeren
+    videos.forEach(v => {
+      v.pause();
+      v.src = "";
+      v.remove();
+    });
+    window.location.replace("index.html?reset=" + Date.now());
   }, 20000);
 }
 
-// ---------- Video Setup ----------
+// ==== Videos erstellen ====
 function createVideos() {
   videoContainer.innerHTML = "";
+  videos = [];
 
-  videoA = document.createElement("video");
-  videoB = document.createElement("video");
-
-  [videoA, videoB].forEach(v => {
-    v.setAttribute("playsinline", "");
-    v.setAttribute("webkit-playsinline", "");
+  for (let i = 0; i < 2; i++) {
+    const v = document.createElement("video");
+    v.style.display = "none";
     v.style.position = "absolute";
     v.style.width = "100%";
     v.style.height = "100%";
     v.style.objectFit = "cover";
-    v.classList.add("video");
+    v.style.opacity = 0;
+    v.style.transition = "opacity 1.5s linear";
+    v.setAttribute("playsinline", "");
+    v.setAttribute("webkit-playsinline", "");
+    v.muted = true;
     videoContainer.appendChild(v);
-  });
-
-  activeVideo = videoA;
-  inactiveVideo = videoB;
+    videos.push(v);
+  }
 }
 
+// ==== Crossfade ====
 function crossfade() {
-  inactiveVideo.classList.add("active");
-  activeVideo.classList.remove("active");
-  [activeVideo, inactiveVideo] = [inactiveVideo, activeVideo];
+  const active = videos[activeIndex];
+  const inactive = videos[1 - activeIndex];
+  inactive.style.opacity = 1;
+  active.style.opacity = 0;
+  activeIndex = 1 - activeIndex;
 }
 
+// ==== Video laden & abspielen ====
 function loadVideo(src) {
   if (isTransitioning) return;
   isTransitioning = true;
+  resetInactivity();
 
-  inactiveVideo.src = src;
-  inactiveVideo.load();
-  inactiveVideo.play().then(() => {
-    crossfade();
-    isTransitioning = false;
-    setTimeout(() => shakeLocked = false, 3000); // 3 Sekunden Shake-Sperre
-  });
+  const inactive = videos[1 - activeIndex];
+  inactive.src = src;
+  inactive.style.display = "block";
+
+  // Vorab stumm starten
+  if (!unlocked) inactive.muted = true;
+
+  inactive.load();
+  inactive.oncanplay = () => {
+    startImage.style.display = "none";
+    startOverlay.style.display = "none";
+
+    inactive.play().then(() => {
+      if (!unlocked) {
+        videos.forEach(v => v.muted = false);
+        unlocked = true;
+      }
+
+      crossfade();
+      isTransitioning = false;
+
+      // Shake erst nach 3 Sekunden wieder freigeben
+      shakeLocked = true;
+      setTimeout(() => shakeLocked = false, 3000);
+    }).catch(err => console.warn("Video konnte nicht automatisch starten:", err));
+  };
 }
 
-function startExperience() {
-  startOverlay.style.display = "none";
-  startVideo.pause();
-  startVideo.style.display = "none";
-
-  videoContainer.innerHTML = "";
-
-  const firstVideo = document.createElement("video");
-  firstVideo.setAttribute("playsinline", "");
-  firstVideo.setAttribute("webkit-playsinline", "");
-  firstVideo.style.position = "absolute";
-  firstVideo.style.width = "100%";
-  firstVideo.style.height = "100%";
-  firstVideo.style.objectFit = "cover";
-  firstVideo.muted = false;
-  firstVideo.controls = false;
-
-  videoContainer.appendChild(firstVideo);
-
-  firstVideo.src = playlists[city][0];
-  firstVideo.load();
-
-  // DAS ist der entscheidende Moment: play() DIREKT im Tap
-  firstVideo.play().then(() => {
-    console.log("Erstes Video läuft mit Ton.");
-    resetInactivity();
-  }).catch(err => {
-    console.warn("Play blockiert:", err);
-  });
-
-  // Index für Shake vorbereiten
-  index = 1;
-  activeVideo = firstVideo;
+// ==== Playlist starten ====
+function startPlaylist() {
+  createVideos();
+  playlistIndex = 0;
+  loadVideo(playlists[city][playlistIndex]);
 }
 
-startOverlay.addEventListener("click", startExperience);
-startOverlay.addEventListener("touchstart", startExperience);
+// ==== Nächstes Video (Shake) ====
+function nextVideo() {
+  if (isTransitioning || shakeLocked) return;
+  playlistIndex = (playlistIndex + 1) % playlists[city].length;
+  loadVideo(playlists[city][playlistIndex]);
+}
 
-// ---------- Shake ----------
-let lastX, lastY, lastZ;
-const threshold = 18;
+// ==== Shake Detection ====
+let lastX = null, lastY = null, lastZ = null;
+const threshold = 15;
 
 function shakeHandler(e) {
-  if (shakeLocked) return;
-
   const acc = e.accelerationIncludingGravity;
-  if (!acc) return;
+  if (!acc || shakeLocked) return;
 
-  if (lastX !== undefined) {
-    const delta = Math.abs(acc.x - lastX) + Math.abs(acc.y - lastY) + Math.abs(acc.z - lastZ);
-    if (delta > threshold) {
-      shakeLocked = true;
-      index = (index + 1) % playlists[city].length;
-      loadVideo(playlists[city][index]);
-      resetInactivity();
-    }
+  if (lastX !== null) {
+    const delta = Math.abs(acc.x - lastX) +
+                  Math.abs(acc.y - lastY) +
+                  Math.abs(acc.z - lastZ);
+    if (delta > threshold) nextVideo();
   }
 
   lastX = acc.x;
@@ -134,10 +138,26 @@ function shakeHandler(e) {
   lastZ = acc.z;
 }
 
-if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-  DeviceMotionEvent.requestPermission().then(res => {
-    if (res === "granted") window.addEventListener("devicemotion", shakeHandler);
-  });
-} else {
-  window.addEventListener("devicemotion", shakeHandler);
+// ==== DeviceMotion Permission (iOS) ====
+function requestDeviceMotionPermission() {
+  if (typeof DeviceMotionEvent !== 'undefined' &&
+      typeof DeviceMotionEvent.requestPermission === 'function') {
+    DeviceMotionEvent.requestPermission()
+      .then(permissionState => {
+        if (permissionState === 'granted')
+          window.addEventListener('devicemotion', shakeHandler);
+      })
+      .catch(console.error);
+  } else {
+    window.addEventListener('devicemotion', shakeHandler);
+  }
 }
+
+requestDeviceMotionPermission();
+
+// ==== Overlay Tap ====
+startOverlay.addEventListener("click", startPlaylist);
+startOverlay.addEventListener("touchstart", startPlaylist);
+
+// ==== Initial Inaktivität starten ====
+resetInactivity();
