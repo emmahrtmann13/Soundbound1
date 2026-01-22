@@ -146,13 +146,23 @@ requestDeviceMotionPermission();
 
 // ==== Overlay Tap (erstes Video + Audio) ====
 function handleOverlayTap() {
-  // Alte Videos sicher entfernen
-  videoContainer.innerHTML = "";
-
+  // Overlay ausblenden
   startOverlay.style.display = "none";
   startImage.style.display = "none";
 
-  startPlaylist();
+  // Erstes Video benutzen
+  const initial = document.getElementById("initialVideo");
+  initial.muted = false; // Ton freigeben
+  initial.src = playlists[city][0];
+  initial.style.display = "block";
+  initial.load();
+  initial.play().catch(err => console.warn("Play fehlgeschlagen:", err));
+
+  // Danach dynamische Videos für Crossfade erstellen
+  createVideos();
+
+  // Setze PlaylistIndex auf 1 für den nächsten Shake
+  playlistIndex = 1;
 
   // Direkt Ton freigeben + erstes Video starten
   if (videos.length > 0) {
