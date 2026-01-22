@@ -11,13 +11,6 @@
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
 
-<script>
-  // Immer denselben Tab verwenden
-  if (window.name !== "player") {
-    window.name = "player";
-    window.location.replace(window.location.href);
-  }
-</script>
 </head>
 <body>
 
@@ -25,10 +18,10 @@
   <img id="startImage" src="img/start.jpg" alt="Start">
   <div id="startOverlay">Stadt anschauen</div>
 
-  <video id="videoA" playsinline style="display:none"></video>
-  <video id="videoB" playsinline style="display:none"></video>
+  <!-- Video Container -->
+  <div id="videoContainer"></div>
 </div>
 
-<script src="js/app.js?v=2"></script>
+<script src="js/app.js?v=3"></script>
 </body>
 </html>
