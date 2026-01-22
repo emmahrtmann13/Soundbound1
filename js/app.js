@@ -71,20 +71,39 @@ function loadVideo(src) {
   });
 }
 
-// ---------- Start ----------
 function startExperience() {
   startOverlay.style.display = "none";
   startVideo.pause();
   startVideo.style.display = "none";
 
-  createVideos();
+  videoContainer.innerHTML = "";
 
-  activeVideo.muted = false;
-  inactiveVideo.muted = false;
+  const firstVideo = document.createElement("video");
+  firstVideo.setAttribute("playsinline", "");
+  firstVideo.setAttribute("webkit-playsinline", "");
+  firstVideo.style.position = "absolute";
+  firstVideo.style.width = "100%";
+  firstVideo.style.height = "100%";
+  firstVideo.style.objectFit = "cover";
+  firstVideo.muted = false;
+  firstVideo.controls = false;
 
-  index = 0;
-  loadVideo(playlists[city][index]);
-  resetInactivity();
+  videoContainer.appendChild(firstVideo);
+
+  firstVideo.src = playlists[city][0];
+  firstVideo.load();
+
+  // DAS ist der entscheidende Moment: play() DIREKT im Tap
+  firstVideo.play().then(() => {
+    console.log("Erstes Video läuft mit Ton.");
+    resetInactivity();
+  }).catch(err => {
+    console.warn("Play blockiert:", err);
+  });
+
+  // Index für Shake vorbereiten
+  index = 1;
+  activeVideo = firstVideo;
 }
 
 startOverlay.addEventListener("click", startExperience);
