@@ -8,6 +8,7 @@ const playlists = {
   wien:    ["videos/wien1.mp4", "videos/wien2.mp4", "videos/wien3.mp4"]
 };
 
+// Ungültige Stadt → Startseite
 if (!city || !playlists[city]) {
   window.location.replace("index.html");
 }
@@ -18,18 +19,17 @@ const startOverlay = document.getElementById("startOverlay");
 const videoContainer = document.getElementById("videoContainer");
 
 let videos = [];
-let activeIndex = 0; // Index im Videos-Array (0 oder 1)
-let playlistIndex = 0; // Index in der Playlist
-let unlocked = false;
+let activeIndex = 0;      // Index im Videos-Array (0 oder 1)
+let playlistIndex = 0;    // Aktuelles Video in Playlist
 let isTransitioning = false;
 let shakeLocked = false;
 let inactivityTimer = null;
 
-// ==== Inaktivität Timer ====
+// ==== Inaktivität 20s ====
 function resetInactivity() {
   if (inactivityTimer) clearTimeout(inactivityTimer);
   inactivityTimer = setTimeout(() => {
-    // Pause Videos und Container leeren
+    // Pause + Container leeren
     videos.forEach(v => {
       v.pause();
       v.src = "";
@@ -39,7 +39,7 @@ function resetInactivity() {
   }, 20000);
 }
 
-// ==== Videos erstellen ====
+// ==== Videos erstellen (2 für Crossfade) ====
 function createVideos() {
   videoContainer.innerHTML = "";
   videos = [];
@@ -80,27 +80,16 @@ function loadVideo(src) {
   inactive.src = src;
   inactive.style.display = "block";
 
-  // Vorab stumm starten
-  if (!unlocked) inactive.muted = true;
-
   inactive.load();
   inactive.oncanplay = () => {
-    startImage.style.display = "none";
-    startOverlay.style.display = "none";
-
     inactive.play().then(() => {
-      if (!unlocked) {
-        videos.forEach(v => v.muted = false);
-        unlocked = true;
-      }
-
       crossfade();
       isTransitioning = false;
 
       // Shake erst nach 3 Sekunden wieder freigeben
       shakeLocked = true;
       setTimeout(() => shakeLocked = false, 3000);
-    }).catch(err => console.warn("Video konnte nicht automatisch starten:", err));
+    }).catch(err => console.warn("Play fehlgeschlagen:", err));
   };
 }
 
@@ -155,33 +144,25 @@ function requestDeviceMotionPermission() {
 
 requestDeviceMotionPermission();
 
-// ==== Overlay Tap ====
-startOverlay.addEventListener("click", () => {
-  startOverlay.style.display = "none";
-  startImage.style.display = "none";
+// ==== Overlay Tap (erstes Video + Audio) ====
+function handleOverlayTap() {
+  // Alte Videos sicher entfernen
+  videoContainer.innerHTML = "";
 
-  // Playlist starten + erste User-Gesture für Audio
-  startPlaylist();
-
-  // Direkt Ton freigeben und Play erzwingen
-  videos.forEach(v => {
-    v.muted = false;
-    v.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
-  });
-});
-
-startOverlay.addEventListener("touchstart", () => {
   startOverlay.style.display = "none";
   startImage.style.display = "none";
 
   startPlaylist();
 
-  videos.forEach(v => {
-    v.muted = false;
-    v.play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
-  });
-});
+  // Direkt Ton freigeben + erstes Video starten
+  if (videos.length > 0) {
+    videos[0].muted = false;
+    videos[0].play().catch(err => console.warn("Play nach Overlay-Tap fehlgeschlagen:", err));
+  }
+}
 
+startOverlay.addEventListener("click", handleOverlayTap);
+startOverlay.addEventListener("touchstart", handleOverlayTap);
 
 // ==== Initial Inaktivität starten ====
 resetInactivity();
