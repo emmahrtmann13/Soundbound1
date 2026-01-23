@@ -31,7 +31,6 @@ html, body {
   user-select: none;
 }
 
-/* Video Layer */
 video {
   position: absolute;
   width: 100%;
