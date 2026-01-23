@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", function () {
     playlistIndex = 0;
     setTimeout(() => {
       loadVideo(playlists[city][playlistIndex]);
-    }, 500);
+    }, 200);
   }
 
   function nextVideo() {
