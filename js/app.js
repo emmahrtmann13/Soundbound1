@@ -1,4 +1,5 @@
 
+document.addEventListener("DOMContentLoaded", function() {
 const params = new URLSearchParams(window.location.search);
 const city = params.get("city");
 
@@ -150,3 +151,5 @@ startOverlay.addEventListener("click", startPlaylist);
 startOverlay.addEventListener("touchstart", startPlaylist);
 
 resetInactivity();
+
+});
