@@ -17,8 +17,6 @@ document.addEventListener("DOMContentLoaded", function () {
   const startImage = document.getElementById("startImage");
   const startOverlay = document.getElementById("startOverlay");
   const videoContainer = document.getElementById("videoContainer");
-  const idleImage = document.getElementById("idleImage");
-
 
   let videos = [];
   let activeIndex = 0; // Index im Videos-Array (0 oder 1)
@@ -30,28 +28,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
   function resetInactivity() {
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(() => {
-
-    // 1. Videos stoppen & entfernen
-    videos.forEach(v => {
-      v.pause();
-      v.src = "";
-      v.remove();
-    });
-    videos = [];
-
-    // 2. Idle-Bild anzeigen
-    idleImage.style.display = "block";
-    startImage.style.display = "none";
-    startOverlay.style.display = "block";
-
-    // 3. Zustand zurücksetzen
-    unlocked = false;
-    isTransitioning = false;
-
-  }, 20000);
-}
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      // Pause Videos und Container leeren
+      videos.forEach(v => {
+        v.pause();
+        v.src = "";
+        v.remove();
+      });
+      window.location.replace("index.html?reset=" + Date.now());
+    }, 20000);
+  }
 
   function createVideos() {
     videoContainer.innerHTML = "";
@@ -97,7 +84,6 @@ document.addEventListener("DOMContentLoaded", function () {
     inactive.oncanplay = () => {
       startImage.style.display = "none";
       startOverlay.style.display = "none";
-      idleImage.style.display = "none";
 
       inactive.play().then(() => {
         if (!unlocked) {
