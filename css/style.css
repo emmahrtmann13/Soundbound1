@@ -7,6 +7,13 @@ html, body {
   background: black;
 }
 
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
 #player, #startImage {
   position: fixed;
   width: 100%;
