@@ -14,8 +14,8 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
 
-  const startImage = document.getElementById("startImage");
-  const startOverlay = document.getElementById("startOverlay");
+ const startImage = document.getElementById("startImage");
+const idleImage = document.getElementById("idleImage");
   const videoContainer = document.getElementById("videoContainer");
 
   let videos = [];
@@ -27,18 +27,29 @@ document.addEventListener("DOMContentLoaded", function () {
   let inactivityTimer = null;
 
 
-  function resetInactivity() {
-    if (inactivityTimer) clearTimeout(inactivityTimer);
-    inactivityTimer = setTimeout(() => {
-      // Pause Videos und Container leeren
-      videos.forEach(v => {
-        v.pause();
-        v.src = "";
-        v.remove();
-      });
-      window.location.replace("index.html?reset=" + Date.now());
-    }, 20000);
-  }
+ function resetInactivity() {
+  if (inactivityTimer) clearTimeout(inactivityTimer);
+  inactivityTimer = setTimeout(() => {
+
+    // Videos stoppen & entfernen
+    videos.forEach(v => {
+      v.pause();
+      v.src = "";
+      v.remove();
+    });
+    videos = [];
+
+    // Endbild anzeigen
+    idleImage.style.display = "block";
+    startImage.style.display = "none";
+    startOverlay.style.display = "block";
+
+    unlocked = false;
+    isTransitioning = false;
+
+  }, 20000);
+}
+
 
   function createVideos() {
     videoContainer.innerHTML = "";
@@ -84,6 +95,7 @@ document.addEventListener("DOMContentLoaded", function () {
     inactive.oncanplay = () => {
       startImage.style.display = "none";
       startOverlay.style.display = "none";
+      idleImage.style.display = "none";
 
       inactive.play().then(() => {
         if (!unlocked) {
