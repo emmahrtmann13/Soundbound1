@@ -7,11 +7,22 @@ html, body {
   background: black;
 }
 
-#player, #startImage {
-  position: fixed;
+#startImage {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+#idleImage { display: none; }
+
+#player {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
 }
 
 #startOverlay {

@@ -114,6 +114,11 @@ document.addEventListener("DOMContentLoaded", function () {
     loadVideo(playlists[city][playlistIndex]);
   }
 
+  function showIdle() {
+  startImage.style.display = "none";
+  idleImage.style.display = "block";
+}
+
   let lastX = null, lastY = null, lastZ = null;
   const threshold = 15;
 
