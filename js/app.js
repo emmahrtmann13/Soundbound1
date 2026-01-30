@@ -73,13 +73,19 @@ function resetInactivity() {
     }
   }
 
-  function crossfade() {
-    const active = videos[activeIndex];
-    const inactive = videos[1 - activeIndex];
-    inactive.style.opacity = 1;
-    active.style.opacity = 0;
-    activeIndex = 1 - activeIndex;
-  }
+function crossfade() {
+  const active = videos[activeIndex];
+  const inactive = videos[1 - activeIndex];
+
+  // 🔇 altes Video wirklich stoppen
+  active.pause();
+  active.currentTime = 0;
+
+  inactive.style.opacity = 1;
+  active.style.opacity = 0;
+
+  activeIndex = 1 - activeIndex;
+}
 
   function loadVideo(src) {
     if (isTransitioning) return;
